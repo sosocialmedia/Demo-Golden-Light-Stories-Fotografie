@@ -1,0 +1,7 @@
+{
+  "name": "Golden Light Stories Fotografie",
+  "description": "Warme, tijdloze fotografie in het gouden uur. Boek eenvoudig een gezins-, zwangerschaps-, newborn- of koppelshoot via de online agenda.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
