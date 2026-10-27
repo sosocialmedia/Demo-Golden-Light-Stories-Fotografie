@@ -31,6 +31,7 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: 'Over Golden Light', href: '#story', subtitle: 'Het verhaal & herinneringen' },
+    { name: 'Pakketten & Aanbod', href: '#pakketten', subtitle: 'Investering & mogelijkheden' },
     { name: 'Portfolio', href: '#portfolio', subtitle: 'Discover my work' },
     { name: 'Golden Stories', href: '#golden-stories', subtitle: 'Thema shoots & verhalen' },
     { name: 'Agenda', href: '#agenda', subtitle: 'Beschikbare data & tijden' },

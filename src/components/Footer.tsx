@@ -50,6 +50,9 @@ export const Footer: React.FC = () => {
               <a href="#story" className="hover:text-white transition-colors">Over Golden Light</a>
             </li>
             <li>
+              <a href="#pakketten" className="hover:text-white transition-colors">Pakketten & Aanbod</a>
+            </li>
+            <li>
               <a href="#portfolio" className="hover:text-white transition-colors">Portfolio</a>
             </li>
             <li>

@@ -3,6 +3,7 @@ import { BookingProvider } from './context/BookingContext';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { IntroStorySection } from './components/IntroStorySection';
+import { PackagesSection } from './components/PackagesSection';
 import { EditorialPortfolio } from './components/EditorialPortfolio';
 import { LoveStoriesSection } from './components/LoveStoriesSection';
 import { CalendarSection } from './components/CalendarSection';
@@ -28,6 +29,9 @@ export default function App() {
 
           {/* 2. Introductie zoals in Voorbeeld 1: Golden Light Stories Fotografie + Verhaal + Kasteelportret + Bloemenbanner */}
           <IntroStorySection />
+
+          {/* 2b. Pakketten & Aanbod (direct onder de introductie afbeelding/banner) */}
+          <PackagesSection />
 
           {/* 3. Portfolio zoals in Voorbeeld 2: DISCOVER MY WORK / Portfolio + 5-foto redactionele layout */}
           <EditorialPortfolio />
