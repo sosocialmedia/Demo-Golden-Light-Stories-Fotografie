@@ -152,29 +152,80 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
   const closeTerms = () => setIsTermsOpen(false);
 
-  // Sync to local storage
+  // Initial fetch from server for cross-device synchronization
+  useEffect(() => {
+    // 1. Stories
+    fetch('/api/stories')
+      .then(res => res.json())
+      .then(serverStories => {
+        if (serverStories && Array.isArray(serverStories) && serverStories.length > 0) {
+          setStories(serverStories);
+          localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(serverStories));
+        }
+      })
+      .catch(err => console.log('Offline or local stories fallback:', err));
+
+    // 2. Days & Slots
+    fetch('/api/days')
+      .then(res => res.json())
+      .then(serverDays => {
+        if (serverDays && Array.isArray(serverDays) && serverDays.length > 0) {
+          setAvailableDays(serverDays);
+          localStorage.setItem(STORAGE_KEY_DAYS, JSON.stringify(serverDays));
+        }
+      })
+      .catch(err => console.log('Offline or local days fallback:', err));
+
+    // 3. Bookings
+    fetch('/api/bookings')
+      .then(res => res.json())
+      .then(serverBookings => {
+        if (serverBookings && Array.isArray(serverBookings)) {
+          setBookings(serverBookings);
+          localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(serverBookings));
+        }
+      })
+      .catch(err => console.log('Offline or local bookings fallback:', err));
+  }, []);
+
+  // Sync to local storage & backend server
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_DAYS, JSON.stringify(availableDays));
     } catch (e) {
-      console.error('Failed to save days', e);
+      // ignore
     }
+    fetch('/api/days', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(availableDays),
+    }).catch(err => console.error('Failed to sync days to server:', err));
   }, [availableDays]);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookings));
     } catch (e) {
-      console.error('Failed to save bookings', e);
+      // ignore
     }
+    fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bookings),
+    }).catch(err => console.error('Failed to sync bookings to server:', err));
   }, [bookings]);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(stories));
     } catch (e) {
-      console.error('Failed to save stories', e);
+      // ignore
     }
+    fetch('/api/stories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stories),
+    }).catch(err => console.error('Failed to sync stories to server:', err));
   }, [stories]);
 
   const addPhotoToStory = (storyId: string, imageUrl: string, isCover = false) => {

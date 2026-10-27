@@ -67,8 +67,30 @@ export const PhotographerAdmin: React.FC = () => {
     try {
       setIsUploadingPhoto(true);
       const compressedDataUrl = await compressImageFile(file);
-      addPhotoToStory(selectedStoryIdForEdit, compressedDataUrl, newPhotoIsCover);
-      setPhotoFeedbackMsg('Foto succesvol geüpload en toegevoegd!');
+
+      // Upload to server endpoint so it gets a persistent URL accessible on all devices
+      let photoUrlToUse = compressedDataUrl;
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: compressedDataUrl,
+            filename: file.name,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.url) {
+            photoUrlToUse = json.url;
+          }
+        }
+      } catch (uploadErr) {
+        console.warn('Fallback to direct dataUrl:', uploadErr);
+      }
+
+      addPhotoToStory(selectedStoryIdForEdit, photoUrlToUse, newPhotoIsCover);
+      setPhotoFeedbackMsg('Foto succesvol geüpload en live opgeslagen!');
       setNewPhotoIsCover(false);
       setTimeout(() => setPhotoFeedbackMsg(''), 3000);
       if (fileInputRef.current) fileInputRef.current.value = '';
