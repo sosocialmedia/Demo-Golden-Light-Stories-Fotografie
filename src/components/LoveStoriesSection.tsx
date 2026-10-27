@@ -1,20 +1,26 @@
 import React, { useState } from 'react';
-import { LOVE_STORIES } from '../data/photographyData';
 import { LoveStoryItem } from '../types';
-import { X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { useBooking } from '../context/BookingContext';
+import { AdminPinModal } from './AdminPinModal';
 
 export const LoveStoriesSection: React.FC = () => {
-  const [selectedStory, setSelectedStory] = useState<LoveStoryItem | null>(null);
+  const { stories, openPhotographerAdmin } = useBooking();
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [targetStoryId, setTargetStoryId] = useState<string | undefined>(undefined);
+
+  const selectedStory = stories.find(s => s.id === selectedStoryId) || null;
 
   const handleOpenGallery = (story: LoveStoryItem) => {
     if (story.isComingSoon) return;
-    setSelectedStory(story);
+    setSelectedStoryId(story.id);
     setActiveImageIndex(0);
   };
 
   const handleCloseGallery = () => {
-    setSelectedStory(null);
+    setSelectedStoryId(null);
     setActiveImageIndex(0);
   };
 
@@ -48,14 +54,30 @@ export const LoveStoriesSection: React.FC = () => {
       <span id="love-stories" className="block -mt-20 pt-20" aria-hidden="true" />
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
         
-        {/* Section Heading: GOLDEN STORIES */}
-        <div className="text-center mb-12 sm:mb-16">
+        {/* Section Heading: GOLDEN STORIES met subtiel discreet slotje */}
+        <div className="relative flex items-center justify-center mb-12 sm:mb-16">
           <h2
             className="text-xs sm:text-sm md:text-[15px] uppercase tracking-[0.38em] text-[#1A1412] font-medium"
             style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
           >
             GOLDEN STORIES
           </h2>
+
+          {/* Subtiel discreet slotje aan de zijkant voor fotografe Nikki */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+            <button
+              id="golden-stories-secret-admin-btn"
+              onClick={() => {
+                setTargetStoryId(undefined);
+                setIsPinModalOpen(true);
+              }}
+              className="p-2 rounded-full text-[#A6978B]/60 hover:text-[#2A211D] hover:bg-[#EFE8DE]/60 transition-all cursor-pointer opacity-50 hover:opacity-100 group"
+              title="Foto's beheren & toevoegen (beveiligd met code)"
+              aria-label="Foto beheer"
+            >
+              <Lock className="w-3.5 h-3.5 text-[#A67C46]/70 group-hover:text-[#A67C46] transition-colors" />
+            </button>
+          </div>
         </div>
 
         {/* 
@@ -64,7 +86,7 @@ export const LoveStoriesSection: React.FC = () => {
           and "BEKIJK GALLERIJ" at the bottom
         */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
-          {LOVE_STORIES.map((story) => (
+          {stories.map((story) => (
             <div
               key={story.id}
               onClick={() => handleOpenGallery(story)}
@@ -163,13 +185,28 @@ export const LoveStoriesSection: React.FC = () => {
               </span>
             </div>
 
-            <button
-              onClick={handleCloseGallery}
-              className="p-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors focus:outline-none"
-              aria-label="Sluit galerij"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTargetStoryId(selectedStory.id);
+                  setIsPinModalOpen(true);
+                }}
+                className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                title="Foto's aan deze categorie toevoegen (beveiligd met code)"
+                aria-label="Foto's toevoegen"
+              >
+                <Lock className="w-4 h-4 text-[#DFCCA9]/70 hover:text-[#DFCCA9]" />
+              </button>
+
+              <button
+                onClick={handleCloseGallery}
+                className="p-2 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-colors focus:outline-none cursor-pointer"
+                aria-label="Sluit galerij"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           {/* Navigation Arrows */}
@@ -233,6 +270,15 @@ export const LoveStoriesSection: React.FC = () => {
 
         </div>
       )}
+
+      {/* PIN Code Beveiligingsmodal voor Fotografe Nikki */}
+      <AdminPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onSuccess={() => {
+          openPhotographerAdmin('fotos', targetStoryId);
+        }}
+      />
     </section>
   );
 };

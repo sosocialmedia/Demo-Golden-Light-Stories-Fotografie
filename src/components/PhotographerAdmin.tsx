@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { X, Calendar, Clock, Plus, Trash2, CheckCircle, AlertCircle, Download, ExternalLink, RefreshCw, MapPin, Phone, Mail, MessageCircle, ShieldCheck, Sun, Check, Eye, Lock } from 'lucide-react';
-import { useBooking } from '../context/BookingContext';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Calendar, Clock, Plus, Trash2, CheckCircle, AlertCircle, Download, ExternalLink, RefreshCw, MapPin, Phone, Mail, MessageCircle, ShieldCheck, Sun, Check, Eye, Lock, Camera, Upload, Image as ImageIcon, Star, CheckCheck } from 'lucide-react';
+import { useBooking, AdminTab } from '../context/BookingContext';
 import { exportAllBookingsIcs, createGoogleCalendarUrl } from '../utils/calendarSync';
 import { SlotType, BookingStatus } from '../types';
+import { compressImageFile } from '../utils/imageCompressor';
 
 export const PhotographerAdmin: React.FC = () => {
   const {
@@ -11,6 +12,14 @@ export const PhotographerAdmin: React.FC = () => {
     activeAdminTab,
     availableDays,
     bookings,
+    stories,
+    activeStoryCategory,
+    setActiveStoryCategory,
+    addPhotoToStory,
+    removePhotoFromStory,
+    setStoryCover,
+    toggleStoryComingSoon,
+    resetStoriesToDefault,
     addAvailableDate,
     removeAvailableDate,
     addSlotToDate,
@@ -25,9 +34,75 @@ export const PhotographerAdmin: React.FC = () => {
     updateDefaultDepositAmount,
   } = useBooking();
 
-  const [currentTab, setCurrentTab] = useState<'beschikbaarheid' | 'boekingen' | 'synchronisatie'>(
+  const [currentTab, setCurrentTab] = useState<AdminTab>(
     activeAdminTab || 'beschikbaarheid'
   );
+
+  useEffect(() => {
+    if (activeAdminTab) {
+      setCurrentTab(activeAdminTab);
+    }
+  }, [activeAdminTab]);
+
+  // Photo management state
+  const [selectedStoryIdForEdit, setSelectedStoryIdForEdit] = useState<string>(() => {
+    return activeStoryCategory || 'story-newborn';
+  });
+
+  useEffect(() => {
+    if (activeStoryCategory) {
+      setSelectedStoryIdForEdit(activeStoryCategory);
+    }
+  }, [activeStoryCategory]);
+
+  const [newPhotoUrl, setNewPhotoUrl] = useState('');
+  const [newPhotoIsCover, setNewPhotoIsCover] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoFeedbackMsg, setPhotoFeedbackMsg] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingPhoto(true);
+      const compressedDataUrl = await compressImageFile(file);
+      addPhotoToStory(selectedStoryIdForEdit, compressedDataUrl, newPhotoIsCover);
+      setPhotoFeedbackMsg('Foto succesvol geüpload en toegevoegd!');
+      setNewPhotoIsCover(false);
+      setTimeout(() => setPhotoFeedbackMsg(''), 3000);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err) {
+      console.error(err);
+      alert('Kon foto niet uploaden. Probeer een andere afbeelding of URL.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleAddUrlPhoto = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPhotoUrl.trim()) return;
+    addPhotoToStory(selectedStoryIdForEdit, newPhotoUrl.trim(), newPhotoIsCover);
+    setNewPhotoUrl('');
+    setNewPhotoIsCover(false);
+    setPhotoFeedbackMsg('Foto via link toegevoegd!');
+    setTimeout(() => setPhotoFeedbackMsg(''), 3000);
+  };
+
+  const handleDeletePhoto = (index: number) => {
+    if (confirm('Weet je zeker dat je deze foto wilt verwijderen uit de galerij?')) {
+      removePhotoFromStory(selectedStoryIdForEdit, index);
+      setPhotoFeedbackMsg('Foto verwijderd');
+      setTimeout(() => setPhotoFeedbackMsg(''), 2500);
+    }
+  };
+
+  const handleSetCoverPhoto = (imgUrl: string) => {
+    setStoryCover(selectedStoryIdForEdit, imgUrl);
+    setPhotoFeedbackMsg('Omslagfoto bijgewerkt!');
+    setTimeout(() => setPhotoFeedbackMsg(''), 2500);
+  };
 
   // New date input
   const [newDateVal, setNewDateVal] = useState('');
@@ -168,6 +243,18 @@ export const PhotographerAdmin: React.FC = () => {
               }`}
             >
               Agenda Koppelen & Export
+            </button>
+
+            <button
+              onClick={() => setCurrentTab('fotos')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all flex items-center space-x-1.5 ${
+                currentTab === 'fotos'
+                  ? 'bg-[#2A211D] text-white shadow-xs'
+                  : 'bg-[#F2ECE1] text-[#5A4D45] hover:bg-[#E8DFD5]'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5 text-[#DFCCA9]" />
+              <span>Foto&apos;s &amp; Portfolio</span>
             </button>
           </div>
 
@@ -791,10 +878,288 @@ export const PhotographerAdmin: React.FC = () => {
                   <span>Standaarddata herstellen</span>
                 </button>
               </div>
-
             </div>
           )}
 
+          {/* TAB 4: FOTO'S & PORTFOLIO BEHEREN */}
+          {currentTab === 'fotos' && (
+            <div className="space-y-6 text-left">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-serif-editorial text-2xl text-[#2A211D]">
+                    Foto&apos;s Beheren &amp; Toevoegen
+                  </h4>
+                  <p className="text-xs text-[#5A4D45] mt-1 leading-relaxed">
+                    Kies een categorie om direct nieuwe foto&apos;s te uploaden vanaf je computer of telefoon, of foto&apos;s te beheren.
+                  </p>
+                </div>
+
+                {photoFeedbackMsg && (
+                  <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center space-x-1.5 animate-in fade-in">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{photoFeedbackMsg}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Categorie selector pills */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {stories.map((story) => {
+                  const isActive = story.id === selectedStoryIdForEdit;
+                  return (
+                    <button
+                      key={story.id}
+                      onClick={() => {
+                        setSelectedStoryIdForEdit(story.id);
+                        setActiveStoryCategory(story.id);
+                      }}
+                      className={`px-4 py-2 rounded-full text-xs font-medium transition-all flex items-center space-x-2 cursor-pointer ${
+                        isActive
+                          ? 'bg-[#2A211D] text-white shadow-xs'
+                          : 'bg-[#F2ECE1] text-[#5A4D45] hover:bg-[#E8DFD5]'
+                      }`}
+                    >
+                      <span className="font-semibold uppercase tracking-wider">{story.title}</span>
+                      <span className={`text-[11px] px-1.5 py-0.2 rounded-full ${
+                        isActive ? 'bg-[#A67C46] text-white' : 'bg-white/80 text-[#705E53]'
+                      }`}>
+                        {story.galleryImages.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active category management card */}
+              {(() => {
+                const currentStory = stories.find(s => s.id === selectedStoryIdForEdit);
+                if (!currentStory) return null;
+
+                return (
+                  <div className="space-y-6">
+                    {/* Categorie details & Coming soon status */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E8DFD5] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs uppercase tracking-[0.2em] text-[#A67C46] font-semibold">
+                            {currentStory.country || 'THEMA SHOOT'}
+                          </span>
+                          <span className="text-xs text-stone-300">•</span>
+                          <span className="text-xs font-medium text-[#705E53]">
+                            {currentStory.galleryImages.length} {currentStory.galleryImages.length === 1 ? 'foto' : 'foto\'s'}
+                          </span>
+                        </div>
+                        <h5 className="font-serif-editorial text-xl text-[#2A211D] font-normal mt-0.5">
+                          {currentStory.title}
+                        </h5>
+                      </div>
+
+                      {/* Coming soon switch */}
+                      <div className="flex items-center space-x-2 self-end sm:self-auto">
+                        <label className="text-xs text-[#5A4D45] flex items-center space-x-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={currentStory.isComingSoon}
+                            onChange={(e) => toggleStoryComingSoon(currentStory.id, e.target.checked)}
+                            className="rounded border-[#D5C7B8] text-[#A67C46] focus:ring-[#A67C46]"
+                          />
+                          <span>Zet op &quot;Foto&apos;s volgen binnenkort&quot;</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Nieuwe foto toevoegen kaart */}
+                    <div className="p-5 sm:p-6 rounded-2xl bg-[#F2ECE1] border border-[#DFCFC0] space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-9 h-9 rounded-full bg-[#2A211D] text-[#FAF7F2] flex items-center justify-center">
+                          <Upload className="w-4 h-4 text-[#E6C9A2]" />
+                        </div>
+                        <div>
+                          <h6 className="font-semibold text-sm text-[#2A211D]">
+                            Nieuwe foto toevoegen aan {currentStory.title}
+                          </h6>
+                          <p className="text-xs text-[#705E53]">
+                            Upload een foto vanaf je telefoon/laptop of vul een afbeeldingslink in.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Omslagfoto optie */}
+                      <label className="flex items-center space-x-2 text-xs text-[#5A4D45] cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={newPhotoIsCover}
+                          onChange={(e) => setNewPhotoIsCover(e.target.checked)}
+                          className="rounded border-[#D5C7B8] text-[#A67C46] focus:ring-[#A67C46]"
+                        />
+                        <span>Maak deze foto direct de <strong>hoofdfoto (omslagfoto)</strong> van de tegel</span>
+                      </label>
+
+                      {/* Upload knop & URL optie */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        {/* Optie 1: Upload van apparaat */}
+                        <div className="p-4 rounded-xl bg-white border border-[#E8DFD5] space-y-3 flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <span className="text-[11px] uppercase tracking-wider text-[#705E53] font-semibold block">
+                              Optie 1: Uploaden vanaf apparaat
+                            </span>
+                            <p className="text-xs text-[#8C7B71]">
+                              Kies een foto uit je bibliotheek of maak direct een foto met je camera.
+                            </p>
+                          </div>
+
+                          <div className="pt-2">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                              id="photo-upload-input"
+                              disabled={isUploadingPhoto}
+                            />
+                            <label
+                              htmlFor="photo-upload-input"
+                              className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 cursor-pointer transition-all ${
+                                isUploadingPhoto
+                                  ? 'bg-stone-200 text-stone-500 cursor-wait'
+                                  : 'bg-[#2A211D] hover:bg-[#3D312A] text-white'
+                              }`}
+                            >
+                              <Upload className="w-3.5 h-3.5 text-[#E6C9A2]" />
+                              <span>{isUploadingPhoto ? 'Foto verwerken...' : 'Kies foto van telefoon / computer'}</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Optie 2: Afbeeldingslink invoeren */}
+                        <form onSubmit={handleAddUrlPhoto} className="p-4 rounded-xl bg-white border border-[#E8DFD5] space-y-3 flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <span className="text-[11px] uppercase tracking-wider text-[#705E53] font-semibold block">
+                              Optie 2: Link / URL invoeren
+                            </span>
+                            <p className="text-xs text-[#8C7B71]">
+                              Plak een directe web-link naar de foto (bv. Google Drive / website).
+                            </p>
+                          </div>
+
+                          <div className="flex items-center space-x-2 pt-2">
+                            <input
+                              type="url"
+                              value={newPhotoUrl}
+                              onChange={(e) => setNewPhotoUrl(e.target.value)}
+                              placeholder="https://.../foto.jpg"
+                              className="flex-1 px-3 py-2 text-xs rounded-xl border border-[#D5C7B8] bg-[#FAF7F2] text-[#2A211D]"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!newPhotoUrl.trim()}
+                              className="bg-[#2A211D] hover:bg-[#3D312A] disabled:opacity-40 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer"
+                            >
+                              Toevoegen
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+
+                    {/* Huidige foto's in deze categorie */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h6 className="font-semibold text-xs uppercase tracking-wider text-[#705E53]">
+                          Huidige foto&apos;s in {currentStory.title} ({currentStory.galleryImages.length})
+                        </h6>
+                        <span className="text-[11px] text-[#8C7B71]">
+                          Klik op &quot;Maak omslag&quot; om een foto als hoofdfoto in te stellen
+                        </span>
+                      </div>
+
+                      {currentStory.galleryImages.length === 0 ? (
+                        <div className="p-8 text-center bg-white rounded-2xl border border-dashed border-[#D5C7B8] text-xs text-[#8C7B71]">
+                          Er staan nog geen foto&apos;s in deze categorie. Upload hierboven een foto om de galerij te activeren!
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {currentStory.galleryImages.map((imgUrl, idx) => {
+                            const isCover = currentStory.coverImage === imgUrl;
+                            return (
+                              <div
+                                key={idx}
+                                className="group relative aspect-square rounded-2xl overflow-hidden bg-stone-100 border border-[#E8DFD5] shadow-xs"
+                              >
+                                <img
+                                  src={imgUrl}
+                                  alt={`${currentStory.title} #${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                />
+
+                                {/* Nummer badge */}
+                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[10px] font-mono">
+                                  #{idx + 1}
+                                </div>
+
+                                {/* Omslagfoto badge */}
+                                {isCover && (
+                                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#A67C46] text-white text-[10px] font-semibold flex items-center space-x-1 shadow-xs">
+                                    <Star className="w-2.5 h-2.5 fill-white" />
+                                    <span>Omslag</span>
+                                  </div>
+                                )}
+
+                                {/* Acties Overlay */}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                                  <div className="flex justify-end">
+                                    <button
+                                      onClick={() => handleDeletePhoto(idx)}
+                                      className="p-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-xs"
+                                      title="Foto verwijderen"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+
+                                  {!isCover && (
+                                    <button
+                                      onClick={() => handleSetCoverPhoto(imgUrl)}
+                                      className="w-full py-1.5 rounded-lg bg-white/90 hover:bg-white text-[#2A211D] text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center space-x-1 shadow-xs"
+                                    >
+                                      <Star className="w-3 h-3 text-[#A67C46]" />
+                                      <span>Maak omslag</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Reset optie */}
+                    <div className="pt-4 border-t border-[#E8DFD5] flex items-center justify-between text-xs text-[#705E53]">
+                      <span>Standaard fotocollectie herstellen?</span>
+                      <button
+                        onClick={() => {
+                          if (confirm('Weet je zeker dat je alle foto\'s van Golden Stories wilt terugzetten naar de originele standaardfoto\'s?')) {
+                            resetStoriesToDefault();
+                            setPhotoFeedbackMsg('Standaard foto\'s hersteld');
+                            setTimeout(() => setPhotoFeedbackMsg(''), 2500);
+                          }
+                        }}
+                        className="flex items-center space-x-1 text-stone-500 hover:text-[#2A211D] cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Originele foto&apos;s herstellen</span>
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })()}
+
+            </div>
+          )}
         </div>
 
         {/* Footer */}

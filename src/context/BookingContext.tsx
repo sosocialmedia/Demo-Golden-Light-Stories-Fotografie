@@ -1,16 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AvailableDay, Booking, BookingStatus, ShootPackage, TimeSlot } from '../types';
-import { INITIAL_AVAILABLE_DAYS, INITIAL_BOOKINGS, PACKAGES } from '../data/photographyData';
+import { AvailableDay, Booking, BookingStatus, ShootPackage, TimeSlot, LoveStoryItem } from '../types';
+import { INITIAL_AVAILABLE_DAYS, INITIAL_BOOKINGS, PACKAGES, GOLDEN_STORIES } from '../data/photographyData';
 import { openBrochurePdf, openTermsPdf } from '../utils/pdfDownload';
+
+export type AdminTab = 'beschikbaarheid' | 'boekingen' | 'synchronisatie' | 'fotos';
 
 interface BookingContextType {
   availableDays: AvailableDay[];
   bookings: Booking[];
   packages: ShootPackage[];
+  stories: LoveStoryItem[];
+  activeStoryCategory: string;
+  setActiveStoryCategory: (id: string) => void;
   isBookingModalOpen: boolean;
   selectedPackage: ShootPackage | null;
   isPhotographerAdminOpen: boolean;
-  activeAdminTab: 'beschikbaarheid' | 'boekingen' | 'synchronisatie';
+  activeAdminTab: AdminTab;
   
   // Brochure & Terms Modals
   isBrochureOpen: boolean;
@@ -25,8 +30,15 @@ interface BookingContextType {
   // Actions
   openBookingModal: (packageId?: string) => void;
   closeBookingModal: () => void;
-  openPhotographerAdmin: (tab?: 'beschikbaarheid' | 'boekingen' | 'synchronisatie') => void;
+  openPhotographerAdmin: (tab?: AdminTab, storyCategory?: string) => void;
   closePhotographerAdmin: () => void;
+  
+  // Photo management by Photographer
+  addPhotoToStory: (storyId: string, imageUrl: string, isCover?: boolean) => void;
+  removePhotoFromStory: (storyId: string, imageIndex: number) => void;
+  setStoryCover: (storyId: string, imageUrl: string) => void;
+  toggleStoryComingSoon: (storyId: string, isComingSoon: boolean) => void;
+  resetStoriesToDefault: () => void;
   
   // Calendar Management by Photographer
   addAvailableDate: (date: string, locationNote?: string) => void;
@@ -67,6 +79,7 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 const STORAGE_KEY_DAYS = 'golden_light_october2026_days_v4';
 const STORAGE_KEY_BOOKINGS = 'golden_light_october2026_bookings_v4';
+const STORAGE_KEY_STORIES = 'golden_light_stories_data_v2';
 
 export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [availableDays, setAvailableDays] = useState<AvailableDay[]>(() => {
@@ -94,10 +107,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return INITIAL_BOOKINGS;
   });
 
+  const [stories, setStories] = useState<LoveStoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_STORIES);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load saved stories', e);
+    }
+    return GOLDEN_STORIES;
+  });
+
+  const [activeStoryCategory, setActiveStoryCategory] = useState<string>('story-newborn');
+
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<ShootPackage | null>(null);
   const [isPhotographerAdminOpen, setIsPhotographerAdminOpen] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState<'beschikbaarheid' | 'boekingen' | 'synchronisatie'>('beschikbaarheid');
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('beschikbaarheid');
 
   // Brochure & Terms state
   const [isBrochureOpen, setIsBrochureOpen] = useState(false);
@@ -144,6 +169,79 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [bookings]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(stories));
+    } catch (e) {
+      console.error('Failed to save stories', e);
+    }
+  }, [stories]);
+
+  const addPhotoToStory = (storyId: string, imageUrl: string, isCover = false) => {
+    setStories(prev =>
+      prev.map(story => {
+        if (story.id !== storyId) return story;
+        const newGallery = [...story.galleryImages, imageUrl];
+        const newCover = (isCover || !story.coverImage) ? imageUrl : story.coverImage;
+        return {
+          ...story,
+          coverImage: newCover,
+          galleryImages: newGallery,
+          isComingSoon: false,
+        };
+      })
+    );
+  };
+
+  const removePhotoFromStory = (storyId: string, imageIndex: number) => {
+    setStories(prev =>
+      prev.map(story => {
+        if (story.id !== storyId) return story;
+        const removedImg = story.galleryImages[imageIndex];
+        const newGallery = story.galleryImages.filter((_, idx) => idx !== imageIndex);
+        let newCover = story.coverImage;
+        if (story.coverImage === removedImg) {
+          newCover = newGallery.length > 0 ? newGallery[0] : '';
+        }
+        return {
+          ...story,
+          coverImage: newCover,
+          galleryImages: newGallery,
+          isComingSoon: newGallery.length === 0,
+        };
+      })
+    );
+  };
+
+  const setStoryCover = (storyId: string, imageUrl: string) => {
+    setStories(prev =>
+      prev.map(story => {
+        if (story.id !== storyId) return story;
+        return {
+          ...story,
+          coverImage: imageUrl,
+        };
+      })
+    );
+  };
+
+  const toggleStoryComingSoon = (storyId: string, isComingSoon: boolean) => {
+    setStories(prev =>
+      prev.map(story => {
+        if (story.id !== storyId) return story;
+        return {
+          ...story,
+          isComingSoon,
+        };
+      })
+    );
+  };
+
+  const resetStoriesToDefault = () => {
+    setStories(GOLDEN_STORIES);
+    localStorage.removeItem(STORAGE_KEY_STORIES);
+  };
+
   const openBookingModal = (packageId?: string) => {
     if (packageId) {
       const pkg = PACKAGES.find(p => p.id === packageId) || PACKAGES[0];
@@ -158,8 +256,14 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsBookingModalOpen(false);
   };
 
-  const openPhotographerAdmin = (tab: 'beschikbaarheid' | 'boekingen' | 'synchronisatie' = 'beschikbaarheid') => {
+  const openPhotographerAdmin = (
+    tab: AdminTab = 'beschikbaarheid',
+    storyCategory?: string
+  ) => {
     setActiveAdminTab(tab);
+    if (storyCategory) {
+      setActiveStoryCategory(storyCategory);
+    }
     setIsPhotographerAdminOpen(true);
   };
 
@@ -376,6 +480,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setBookings(INITIAL_BOOKINGS);
     localStorage.removeItem(STORAGE_KEY_DAYS);
     localStorage.removeItem(STORAGE_KEY_BOOKINGS);
+    resetStoriesToDefault();
   };
 
   return (
@@ -384,6 +489,9 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         availableDays,
         bookings,
         packages: PACKAGES,
+        stories,
+        activeStoryCategory,
+        setActiveStoryCategory,
         isBookingModalOpen,
         selectedPackage,
         isPhotographerAdminOpen,
@@ -400,6 +508,11 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         closeBookingModal,
         openPhotographerAdmin,
         closePhotographerAdmin,
+        addPhotoToStory,
+        removePhotoFromStory,
+        setStoryCover,
+        toggleStoryComingSoon,
+        resetStoriesToDefault,
         addAvailableDate,
         removeAvailableDate,
         addSlotToDate,
