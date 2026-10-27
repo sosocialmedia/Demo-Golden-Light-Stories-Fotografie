@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Clock, Plus, Trash2, CheckCircle, AlertCircle, Download, ExternalLink, RefreshCw, MapPin, Phone, Mail, MessageCircle, ShieldCheck, Sun, Check, Eye } from 'lucide-react';
+import { X, Calendar, Clock, Plus, Trash2, CheckCircle, AlertCircle, Download, ExternalLink, RefreshCw, MapPin, Phone, Mail, MessageCircle, ShieldCheck, Sun, Check, Eye, Lock } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { exportAllBookingsIcs, createGoogleCalendarUrl } from '../utils/calendarSync';
 import { SlotType, BookingStatus } from '../types';
@@ -40,9 +40,23 @@ export const PhotographerAdmin: React.FC = () => {
 
   // External calendar sync state
   const [googleSyncUrl, setGoogleSyncUrl] = useState(() => {
-    return localStorage.getItem('golden_light_photographer_cal_url') || '';
+    return (
+      localStorage.getItem('golden_light_photographer_cal_url') ||
+      'https://calendar.google.com/calendar/u/0/embed?src=nikki.jvdd@gmail.com&ctz=Europe/Amsterdam'
+    );
   });
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [pinCode, setPinCode] = useState(() => localStorage.getItem('golden_light_admin_pin') || '2026');
+  const [pinSaveSuccessMsg, setPinSaveSuccessMsg] = useState('');
+
+  const handleSavePinCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinCode.length === 4) {
+      localStorage.setItem('golden_light_admin_pin', pinCode);
+      setPinSaveSuccessMsg('Nieuwe toegangscode opgeslagen!');
+      setTimeout(() => setPinSaveSuccessMsg(''), 3000);
+    }
+  };
 
   if (!isPhotographerAdminOpen) return null;
 
@@ -651,34 +665,64 @@ export const PhotographerAdmin: React.FC = () => {
               </div>
 
               {/* Sync Option 2: Google Agenda URL Sync */}
-              <div className="p-5 rounded-2xl bg-[#F2ECE1] border border-[#DFCFC0] space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-[#FAF7F2] flex items-center justify-center text-[#A67C46]">
-                    <ExternalLink className="w-4 h-4" />
+              <div className="p-5 rounded-2xl bg-[#F2ECE1] border border-[#DFCFC0] space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-[#FAF7F2] flex items-center justify-center text-[#A67C46]">
+                      <ExternalLink className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h5 className="font-semibold text-sm text-[#2A211D]">
+                        2. Live Google Agenda Koppeling
+                      </h5>
+                      <p className="text-xs text-[#705E53]">
+                        Jouw Google Agenda (<span className="font-semibold text-[#2A211D]">nikki.jvdd@gmail.com</span>) is direct gekoppeld en ingebed in de agenda-sectie op de website.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h5 className="font-semibold text-sm text-[#2A211D]">
-                      2. Google Agenda Koppeling (iCal Feed URL)
-                    </h5>
-                    <p className="text-xs text-[#705E53]">
-                      Plak hieronder eventueel jouw openbare of geheime iCal-feed link van Google Agenda om bezette vakanties of privé-afspraken te koppelen.
-                    </p>
-                  </div>
+
+                  <a
+                    href="https://calendar.google.com/calendar/u/0/embed?src=nikki.jvdd@gmail.com&ctz=Europe/Amsterdam"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs text-[#A67C46] hover:underline flex items-center space-x-1"
+                  >
+                    <span>Test weergave ↗</span>
+                  </a>
+                </div>
+
+                {/* Belangrijke instelling in Google */}
+                <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80 space-y-2 text-xs text-[#5A4D45]">
+                  <p className="font-semibold text-emerald-950 flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Status: Openbare Google Agenda actief & gekoppeld</span>
+                  </p>
+                  <p className="leading-relaxed text-emerald-900">
+                    Jouw agenda (<strong>nikki.jvdd@gmail.com</strong>) staat nu ingesteld op openbaar. Bezoekers kunnen direct de actuele bezette en vrije tijden inzien op de website.
+                  </p>
+                  <p className="leading-relaxed text-[#5A4D45] pt-1">
+                    Wil je de weergave (bijv. alleen &quot;Bezet&quot; of volledige shootnamen) later wijzigen? Dit kun je altijd aanpassen in Google Agenda onder <em>&quot;Instellingen en delen&quot; &rarr; &quot;Toegangsrechten voor afspraken&quot;</em>.
+                  </p>
                 </div>
 
                 <form onSubmit={handleSaveGoogleCalUrl} className="space-y-3 pt-1">
-                  <input
-                    type="url"
-                    value={googleSyncUrl}
-                    onChange={e => setGoogleSyncUrl(e.target.value)}
-                    placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#D5C7B8] bg-[#FAF7F2] text-[#2A211D]"
-                  />
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-wider text-[#705E53] font-medium mb-1">
+                      Ingebedde Google Agenda Link
+                    </label>
+                    <input
+                      type="url"
+                      value={googleSyncUrl}
+                      onChange={e => setGoogleSyncUrl(e.target.value)}
+                      placeholder="https://calendar.google.com/calendar/u/0/embed?src=nikki.jvdd@gmail.com&ctz=Europe/Amsterdam"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-[#D5C7B8] bg-[#FAF7F2] text-[#2A211D]"
+                    />
+                  </div>
 
                   <div className="flex items-center space-x-3">
                     <button
                       type="submit"
-                      className="bg-[#2A211D] hover:bg-[#3D312A] text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+                      className="bg-[#2A211D] hover:bg-[#3D312A] text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
                     >
                       Koppeling Opslaan
                     </button>
@@ -688,6 +732,47 @@ export const PhotographerAdmin: React.FC = () => {
                       </span>
                     )}
                   </div>
+                </form>
+              </div>
+
+              {/* Sync Option 3: Beheerders Pincode Instellen */}
+              <div className="p-5 rounded-2xl bg-[#F2ECE1] border border-[#DFCFC0] space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-[#FAF7F2] flex items-center justify-center text-[#A67C46]">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-sm text-[#2A211D]">
+                      3. Toegangscode Beheer (Pincode)
+                    </h5>
+                    <p className="text-xs text-[#705E53]">
+                      Stel hier de 4-cijferige code in waarmee je via het subtiele slotje op de website inlogt (standaard: <strong>2026</strong>).
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSavePinCode} className="flex flex-wrap items-center gap-3 pt-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    value={pinCode}
+                    onChange={e => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    className="w-28 px-3 py-2 text-center text-sm font-mono tracking-widest font-bold rounded-xl border border-[#D5C7B8] bg-[#FAF7F2] text-[#2A211D]"
+                    placeholder="2026"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-[#2A211D] hover:bg-[#3D312A] text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    Pincode Opslaan
+                  </button>
+                  {pinSaveSuccessMsg && (
+                    <span className="text-xs text-emerald-700 font-semibold animate-in fade-in">
+                      ✓ {pinSaveSuccessMsg}
+                    </span>
+                  )}
                 </form>
               </div>
 

@@ -142,7 +142,7 @@ function generateBrochure() {
   doc.setFont('times', 'italic');
   doc.setFontSize(9);
   doc.setTextColor(120, 105, 95);
-  doc.text('Vragen of een datum reserveren? info@goldenlightstories.nl • Tel / WhatsApp: 06 - 12 34 56 78', pageWidth / 2, y, { align: 'center' });
+  doc.text('Vragen of een datum reserveren? goldenlsphotography@gmail.com • Tel / WhatsApp: 06 - 12 34 56 78', pageWidth / 2, y, { align: 'center' });
 
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
   fs.writeFileSync(path.join(publicDir, 'brochure-tarieven-golden-light-stories.pdf'), pdfBuffer);

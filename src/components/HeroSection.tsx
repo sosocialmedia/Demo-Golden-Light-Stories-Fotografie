@@ -1,17 +1,8 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { useBooking } from '../context/BookingContext';
-import heroImg from '../assets/images/hero_golden_hour_1789723084074.jpg';
+import heroImg from '../assets/images/hero_golden_hour_1789723084074.jpeg';
 
 export const HeroSection: React.FC = () => {
-  const { availableDays } = useBooking();
-
-  // Count upcoming free slots
-  const totalFreeSlots = availableDays.reduce(
-    (acc, day) => acc + day.slots.filter(s => !s.isBooked).length,
-    0
-  );
-
   const scrollToStory = () => {
     const el = document.querySelector('#story');
     if (el) {
@@ -51,17 +42,6 @@ export const HeroSection: React.FC = () => {
         >
           <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 stroke-[1.25]" />
         </button>
-      </div>
-
-      {/* Subtiel badge onderin over actuele beschikbaarheid */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 hidden sm:flex items-center space-x-2.5 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md border border-white/20 text-white/90 text-xs">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DFCCA9] opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DFCCA9]"></span>
-        </span>
-        <span className="tracking-wide">
-          Agenda geopend • <strong className="font-semibold text-white">{totalFreeSlots} tijdsloten</strong> beschikbaar
-        </span>
       </div>
     </section>
   );

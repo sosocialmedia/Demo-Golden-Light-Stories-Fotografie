@@ -4,7 +4,7 @@ import maternityDunesImg from '../assets/images/maternity_dunes_bump_17908500265
 import coupleMeadowImg from '../assets/images/couple_meadow_sunset_1790850013841.jpeg';
 import motherToddlerImg from '../assets/images/mother_toddler_studio_1790850037968.jpeg';
 import brandingDunesImg from '../assets/images/branding_dunes_dress_1790850055961.jpg';
-import newbornHandsImg from '../assets/images/newborn_peaceful_hands_1790850047140.jpeg';
+import newbornSlapendImg from '../assets/images/newborn_slapend_deken_1792015903947.jpeg';
 
 interface ShowcasePhoto {
   id: string;
@@ -49,8 +49,8 @@ export const EditorialPortfolio: React.FC = () => {
     },
     {
       id: 'photo-5',
-      url: newbornHandsImg,
-      alt: 'Puur newborn kindje slapend in vaders handen',
+      url: newbornSlapendImg,
+      alt: 'Puur newborn kindje vredig slapend in een warm wollen truitje',
       caption: 'De allereerste magische dagen in alle rust vastgelegd',
       category: 'Puur Newborn',
     },
@@ -220,20 +220,9 @@ export const EditorialPortfolio: React.FC = () => {
             <img
               src={showcasePhotos[activePhotoIndex].url}
               alt={showcasePhotos[activePhotoIndex].alt}
-              className="max-h-[75vh] w-auto object-contain shadow-2xl"
+              className="max-h-[85vh] w-auto object-contain shadow-2xl"
               referrerPolicy="no-referrer"
             />
-            <div className="mt-4 text-center">
-              <p
-                className="text-white text-base font-light"
-                style={{ fontFamily: "'Bodoni Moda', Georgia, serif" }}
-              >
-                {showcasePhotos[activePhotoIndex].caption}
-              </p>
-              <p className="text-white/60 text-xs uppercase tracking-[0.2em] mt-1">
-                {showcasePhotos[activePhotoIndex].category} • {activePhotoIndex + 1} / {showcasePhotos.length}
-              </p>
-            </div>
           </div>
 
         </div>

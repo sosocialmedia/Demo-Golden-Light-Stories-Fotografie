@@ -1,8 +1,7 @@
 import { ShootPackage, PortfolioItem, Review, AvailableDay, Booking, CalendarSettings, LoveStoryItem } from '../types';
-import heroImg from '../assets/images/hero_golden_hour_1789723084074.jpg';
+import heroImg from '../assets/images/hero_golden_hour_1789723084074.jpeg';
 import maternityImg from '../assets/images/maternity_sunset_1789723099413.jpg';
 import newbornImg from '../assets/images/newborn_pure_1789723113106.jpg';
-import coupleImg from '../assets/images/couple_golden_sunset_1789723141224.jpg';
 import portraitImg from '../assets/images/photographer_portrait_1789723124705.jpg';
 
 // Nikki's actual photography assets
@@ -12,13 +11,39 @@ import motherToddlerImg from '../assets/images/mother_toddler_studio_17908500379
 import newbornHandsImg from '../assets/images/newborn_peaceful_hands_1790850047140.jpeg';
 import brandingDunesImg from '../assets/images/branding_dunes_dress_1790850055961.jpg';
 import clientClosetDunesWalkImg from '../assets/images/client_closet_dunes_walk_1790858799287.jpg';
-import coupleBannerImg from '../assets/images/couple_meadow_banner_1790850066606.jpg';
+import coupleBannerImg from '../assets/images/couple_meadow_banner_1790850066606.jpeg';
 import maternityStudioImg from '../assets/images/maternity_studio_brown_1790850087474.jpeg';
-import kinderPortretGoldenImg from '../assets/images/kinder_portret_golden_laugh_1790858833245.jpg';
+import kinderPortretLaughImg from '../assets/images/kinder_portret_golden_laugh_1790858833245.jpeg';
+
+// Kinderportret additions (3 photos)
+import kinderPortretMeadowImg from '../assets/images/kinder_portret_meadow_1792015860690.jpeg';
+import kinderPortretForestImg from '../assets/images/kinder_portret_forest_1792015860942.jpeg';
+import kinderPortretLaughterImg from '../assets/images/kinder_portret_laughter_1792015861025.jpeg';
+
+// Gezinsshoot additions (3 photos)
+import gezinStrandImg from '../assets/images/gezin_strand_zonsondergang_1792015879300.jpeg';
+import gezinKnuffelImg from '../assets/images/gezin_knuffel_weide_1792015879289.jpeg';
+import gezinVaderKindImg from '../assets/images/gezin_vader_kind_1792015879871.jpeg';
+
+// Newborn additions (3 photos)
+import newbornSlapendImg from '../assets/images/newborn_slapend_deken_1792015903947.jpeg';
+import newbornMoederImg from '../assets/images/newborn_moeder_omhelzing_1792015905861.jpeg';
+import newbornVoetjesImg from '../assets/images/newborn_details_voetjes_1792015905240.jpeg';
+
+// Pregnant additions (4 photos)
+import pregnantDuinenJurkImg from '../assets/images/pregnant_duinen_jurk_1792015935714.jpeg';
+import pregnantKoppelImg from '../assets/images/pregnant_koppel_zonsondergang_1792015935625.jpeg';
+import pregnantStudioVensterImg from '../assets/images/pregnant_studio_venster_1792015935729.jpeg';
+import pregnantBloemenweideImg from '../assets/images/pregnant_bloemenweide_1792015969115.jpeg';
+
+// Branding additions (3 photos)
+import brandingStudioCafeImg from '../assets/images/branding_studio_cafe_1792016006207.jpeg';
+import brandingBuitenWerkImg from '../assets/images/branding_buiten_werk_1792016005870.jpeg';
+import brandingCreatiefPortretImg from '../assets/images/branding_creatief_portret_1792016005433.jpeg';
 
 export const PHOTOGRAPHER_INFO: CalendarSettings = {
   photographerName: 'Nikki | Golden Light Stories Fotografie',
-  email: 'info@goldenlightstories.nl',
+  email: 'goldenlsphotography@gmail.com',
   phone: '+31 6 12 34 56 78',
   instagramUrl: 'https://www.instagram.com/goldenls_photography/',
   facebookUrl: 'https://www.facebook.com/mylooksbyn',
@@ -150,10 +175,12 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
     id: 'story-newborn',
     title: 'NEWBORN',
     country: 'PUUR & INTIEM',
-    coverImage: newbornHandsImg,
+    coverImage: newbornSlapendImg,
     galleryImages: [
-      newbornHandsImg,
+      newbornSlapendImg,
       newbornImg,
+      newbornMoederImg,
+      newbornVoetjesImg,
     ],
     description: 'De allereerste magische dagen in alle rust vastgelegd. Geen geforceerde poses, maar pure teentjes, geeuwen en de geborgenheid van jullie gezin.',
   },
@@ -173,8 +200,9 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
     coverImage: brandingDunesImg,
     galleryImages: [
       brandingDunesImg,
-      clientClosetDunesWalkImg,
-      maternityStudioImg,
+      brandingStudioCafeImg,
+      brandingBuitenWerkImg,
+      brandingCreatiefPortretImg,
     ],
     description: 'Warme, authentieke en krachtige beelden voor zelfstandige ondernemers en creatieve merken die het échte gezicht achter het bedrijf laten zien.',
   },
@@ -187,6 +215,10 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
       maternityDunesImg,
       maternityStudioImg,
       maternityImg,
+      pregnantDuinenJurkImg,
+      pregnantKoppelImg,
+      pregnantStudioVensterImg,
+      pregnantBloemenweideImg,
     ],
     description: 'De magie van jouw groeiende buik tijdens het zachte gouden avonduur. Inclusief gratis gebruik van onze luxe zwangerschapsjurken.',
   },
@@ -197,8 +229,7 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
     coverImage: coupleMeadowImg,
     galleryImages: [
       coupleMeadowImg,
-      coupleBannerImg,
-      heroImg,
+      gezinKnuffelImg,
     ],
     description: 'Ongedwongen rennen, knuffelen en plezier maken in de natuur. Echte connectie en oprechte lachjes van het hele gezin.',
   },
@@ -209,9 +240,10 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
     coverImage: motherToddlerImg,
     galleryImages: [
       motherToddlerImg,
-      kinderPortretGoldenImg,
+      kinderPortretMeadowImg,
+      kinderPortretLaughterImg,
     ],
-    description: 'Tijdloze, pure kinderportretten vol verwondering, ontdekking en ondeugende lachjes. Zonder stijve poses, maar gewoon lekker kind zijn in het mooiste gouden licht.',
+    description: 'Tijdloze, pure kinderportretten vol verwondering, ontdekking en liefdevolle momenten.',
   },
 ];
 
@@ -238,11 +270,11 @@ export const PORTFOLIO_ITEMS: PortfolioItem[] = [
   },
   {
     id: 'port-3',
-    title: 'Teder in vaders handen',
+    title: 'Puur & vredig slapend',
     category: 'newborn',
-    imageUrl: newbornHandsImg,
+    imageUrl: newbornSlapendImg,
     location: 'Rustig bij het gezin thuis',
-    description: 'Kleine Luuk, vredig slapend in de geborgenheid van sterke handen.',
+    description: 'Kleine Luuk, vredig slapend in een warm wollen truitje.',
   },
   {
     id: 'port-4',
@@ -278,11 +310,11 @@ export const PORTFOLIO_ITEMS: PortfolioItem[] = [
   },
   {
     id: 'port-8',
-    title: 'Moederliefde & tederheid',
+    title: 'Puur kinderportret in de zon',
     category: 'gezin',
     imageUrl: motherToddlerImg,
-    location: 'Lichtrijke studio setting',
-    description: 'Onvoorwaardelijke liefde, zachtheid en pure knuffels.',
+    location: 'Buiten in natuurlijk gouden licht',
+    description: 'Onbezorgd en vrolijk kind zijn vol ondeugende lachjes en verwondering.',
   },
 ];
 

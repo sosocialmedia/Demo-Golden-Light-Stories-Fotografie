@@ -1,6 +1,6 @@
 import React from 'react';
 import coupleMeadowImg from '../assets/images/couple_meadow_sunset_1790850013841.jpeg';
-import coupleBannerImg from '../assets/images/couple_meadow_banner_1790850066606.jpg';
+import coupleBannerImg from '../assets/images/couple_meadow_banner_1790850066606.jpeg';
 
 export const IntroStorySection: React.FC = () => {
   return (

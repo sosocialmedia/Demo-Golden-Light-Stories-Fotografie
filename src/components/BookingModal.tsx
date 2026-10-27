@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { createGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarSync';
+import { openTermsPdf } from '../utils/pdfDownload';
 import { Booking, ShootPackage, TimeSlot } from '../types';
 
 export const BookingModal: React.FC = () => {
@@ -149,6 +150,13 @@ export const BookingModal: React.FC = () => {
       setConfirmedBooking(booking);
       setIsProcessing(false);
       setStep(4);
+
+      // Automatisch de Algemene Voorwaarden als download / bijlage openen voor de klant
+      try {
+        openTermsPdf();
+      } catch (err) {
+        console.error('Could not auto-open terms PDF', err);
+      }
     }, 700);
   };
 
@@ -768,6 +776,13 @@ export const BookingModal: React.FC = () => {
                     Inclusief kosteloze slecht-weer en ziekte garantie conform artikel 3 van de voorwaarden.
                   </span>
                 </div>
+
+                <div className="flex items-start space-x-2.5 text-[11px] text-[#705E53] bg-[#EFE7DC]/50 p-2.5 rounded-xl border border-[#DFCFC0]">
+                  <FileText className="w-4 h-4 text-[#A67C46] shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Automatisch retour:</strong> Bij het voltooien van dit formulier worden de Algemene Voorwaarden direct automatisch als bijlage & downloadlink geopend en meegestuurd zodat je deze voor de shoot kunt doorlezen.
+                  </span>
+                </div>
               </div>
 
               {/* Navigation and Submit Buttons */}
@@ -815,7 +830,7 @@ export const BookingModal: React.FC = () => {
                 </h4>
                 <p className="text-xs sm:text-sm text-[#5A4D45] max-w-md mx-auto font-light leading-relaxed">
                   Dankjewel <strong className="text-[#2A211D]">{confirmedBooking.clientName}</strong>!
-                  De datum is direct gereserveerd in de agenda. Je ontvangt zo spoedig mogelijk een bevestiging.
+                  De datum is direct gereserveerd in de agenda.
                 </p>
               </div>
 
@@ -825,6 +840,53 @@ export const BookingModal: React.FC = () => {
                 <span className="font-medium">
                   Aanbetaling van € {confirmedBooking.depositAmount || 50},- succesvol geregistreerd ({confirmedBooking.paymentMethod || 'iDEAL'})
                 </span>
+              </div>
+
+              {/* Algemene Voorwaarden Automatisch Meegestuurd Card */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#F5EFE8] border border-[#DFCFC0] max-w-md mx-auto text-left space-y-3 shadow-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-full bg-[#EFE7DC] flex items-center justify-center text-[#A67C46] shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h5 className="font-medium text-xs sm:text-sm text-[#2A211D]">
+                        Algemene Voorwaarden direct meegestuurd
+                      </h5>
+                      <p className="text-[11px] text-[#705E53]">
+                        Als bijlage & link verzonden naar {confirmedBooking.clientEmail}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-semibold shrink-0">
+                    <Check className="w-3 h-3" />
+                    <span>Meegestuurd</span>
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#5A4D45] leading-relaxed font-light">
+                  De voorwaarden zijn automatisch geopend en retour gestuurd. Lees deze voor de shoot rustig door zodat je goed voorbereid bent op o.a. de kosteloze slecht-weer garantie, kledingtips en de shoot-dag.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={openTermsPdf}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-[#2A211D] text-white hover:bg-[#3D312A] text-xs font-medium transition-all shadow-2xs cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#DFCCA9]" />
+                    <span>Openen / Downloaden (PDF)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={openTerms}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-[#D5C7B8] bg-white text-[#2A211D] hover:bg-[#EFE7DC] text-xs font-medium transition-all cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-[#A67C46]" />
+                    <span>Online Doorlezen</span>
+                  </button>
+                </div>
               </div>
 
               {/* Booking Receipt Summary Card */}
@@ -871,11 +933,11 @@ export const BookingModal: React.FC = () => {
                 <span>•</span>
                 <button
                   type="button"
-                  onClick={openTerms}
+                  onClick={openTermsPdf}
                   className="flex items-center space-x-1.5 text-[#A67C46] hover:text-[#2A211D] font-medium underline"
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>Algemene Voorwaarden</span>
+                  <span>Algemene Voorwaarden (PDF)</span>
                 </button>
               </div>
 

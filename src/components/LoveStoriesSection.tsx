@@ -18,19 +18,30 @@ export const LoveStoriesSection: React.FC = () => {
     setActiveImageIndex(0);
   };
 
-  const handlePrevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePrevImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (selectedStory && selectedStory.galleryImages.length > 0) {
       setActiveImageIndex((prev) => (prev - 1 + selectedStory.galleryImages.length) % selectedStory.galleryImages.length);
     }
   };
 
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleNextImage = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (selectedStory && selectedStory.galleryImages.length > 0) {
       setActiveImageIndex((prev) => (prev + 1) % selectedStory.galleryImages.length);
     }
   };
+
+  React.useEffect(() => {
+    if (!selectedStory) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCloseGallery();
+      if (e.key === 'ArrowLeft') handlePrevImage();
+      if (e.key === 'ArrowRight') handleNextImage();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStory]);
 
   return (
     <section id="golden-stories" className="bg-white text-[#241C18] pt-16 pb-28 sm:pb-36 scroll-mt-20">
@@ -88,19 +99,13 @@ export const LoveStoriesSection: React.FC = () => {
 
                   {/* Centered Typography & "BEKIJK GALLERIJ" */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center select-none">
-                    <div className="space-y-1.5 transform transition-transform duration-500 group-hover:-translate-y-1">
+                    <div className="space-y-1 transform transition-transform duration-500 group-hover:-translate-y-1">
                       <h3
                         className="text-white text-sm sm:text-[15px] md:text-base uppercase tracking-[0.28em] font-medium drop-shadow-md leading-relaxed"
                         style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                       >
                         {story.title}
                       </h3>
-                      <p
-                        className="text-white/90 text-xs sm:text-[13px] uppercase tracking-[0.28em] font-light drop-shadow-sm"
-                        style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
-                      >
-                        {story.country}
-                      </p>
                     </div>
 
                     <div className="absolute bottom-8 left-0 right-0 text-center">
@@ -116,19 +121,13 @@ export const LoveStoriesSection: React.FC = () => {
               ) : (
                 /* Beige achtergrond voor thema's zonder foto (bijv. Cakesmash) */
                 <div className="w-full h-full bg-[#F5EFE6] border border-[#E5DACD] flex flex-col items-center justify-center p-6 sm:p-8 text-center select-none group-hover:bg-[#EFE8DE] transition-colors duration-500">
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <h3
                       className="text-[#241C18] text-sm sm:text-[15px] md:text-base uppercase tracking-[0.28em] font-medium leading-relaxed"
                       style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                     >
                       {story.title}
                     </h3>
-                    <p
-                      className="text-[#7A6B62] text-xs sm:text-[13px] uppercase tracking-[0.28em] font-light"
-                      style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
-                    >
-                      {story.country}
-                    </p>
                   </div>
 
                   <div className="mt-6 pt-3 border-t border-[#DFD3C3] w-32">
@@ -161,9 +160,6 @@ export const LoveStoriesSection: React.FC = () => {
                 style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
               >
                 {selectedStory.title}
-              </span>
-              <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-white/70">
-                {selectedStory.country}
               </span>
             </div>
 
@@ -199,43 +195,40 @@ export const LoveStoriesSection: React.FC = () => {
 
           {/* Gallery View */}
           <div
-            className="max-w-4xl max-h-[82vh] flex flex-col items-center select-none"
+            className="max-w-4xl max-h-[85vh] flex flex-col items-center select-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative overflow-hidden bg-black/40 shadow-2xl">
               <img
                 src={selectedStory.galleryImages[activeImageIndex]}
                 alt={`${selectedStory.title} - Foto ${activeImageIndex + 1}`}
-                className="max-h-[72vh] w-auto object-contain"
+                className="max-h-[80vh] w-auto object-contain"
                 referrerPolicy="no-referrer"
               />
             </div>
 
-            {/* Story Description & Image Indicator */}
-            <div className="mt-4 text-center max-w-xl">
-              {selectedStory.description && (
-                <p
-                  className="text-white/90 text-sm font-light leading-relaxed"
-                  style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
-                >
-                  {selectedStory.description}
-                </p>
-              )}
-              <div className="flex items-center justify-center space-x-2 mt-3">
-                {selectedStory.galleryImages.map((_, idx) => (
+            {selectedStory.galleryImages.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-4 max-w-full overflow-x-auto px-2 py-1 no-scrollbar">
+                {selectedStory.galleryImages.map((imgUrl, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`h-1.5 transition-all rounded-full ${
+                    className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden transition-all duration-200 flex-shrink-0 cursor-pointer ${
                       idx === activeImageIndex
-                        ? 'w-6 bg-white'
-                        : 'w-1.5 bg-white/40 hover:bg-white/70'
+                        ? 'ring-2 ring-white scale-105 opacity-100 shadow-md'
+                        : 'opacity-40 hover:opacity-80'
                     }`}
                     aria-label={`Ga naar foto ${idx + 1}`}
-                  />
+                  >
+                    <img
+                      src={imgUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
                 ))}
               </div>
-            </div>
+            )}
           </div>
 
         </div>
