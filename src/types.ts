@@ -48,14 +48,14 @@ export interface Booking {
   packageId: string;
   packageName: string;
   date: string; // "YYYY-MM-DD"
-  timeSlotId: string;
-  timeSlotLabel: string;
-  timeSlotTime: string;
+  timeSlotId?: string;
+  timeSlotLabel?: string;
+  timeSlotTime?: string;
   clientName: string;
   clientEmail: string;
   clientPhone: string;
-  groupSize: string;
-  preferredLocation: string;
+  groupSize?: string;
+  preferredLocation?: string;
   message?: string;
   createdAt: string;
   status: BookingStatus;

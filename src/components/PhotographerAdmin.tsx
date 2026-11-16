@@ -301,28 +301,29 @@ export const PhotographerAdmin: React.FC = () => {
                   <h4 className="font-serif-editorial text-lg text-[#2A211D] font-semibold">
                     Nieuwe Beschikbare Datum Toevoegen
                   </h4>
-                  {/* Quick batch generator for October 2026 */}
+                  {/* Quick batch generator for upcoming weekends */}
                   <button
                     type="button"
                     onClick={() => {
-                      batchAddWeekendSunsetSlots(2026, 9);
+                      batchAddWeekendSunsetSlots(2026, 10); // November 2026
+                      batchAddWeekendSunsetSlots(2026, 11); // December 2026
                     }}
                     className="text-xs text-[#A67C46] hover:text-[#2A211D] font-medium underline flex items-center space-x-1"
                   >
                     <Clock className="w-3.5 h-3.5" />
-                    <span>+ Voeg automatisch alle weekenden van oktober 2026 toe</span>
+                    <span>+ Voeg automatisch weekenden van november & december toe</span>
                   </button>
                 </div>
 
                 <form onSubmit={handleCreateDate} className="flex flex-col sm:flex-row items-end gap-3">
                   <div className="flex-1 w-full">
                     <label className="block text-[11px] font-semibold text-[#705E53] uppercase mb-1">
-                      Kies Datum (vanaf oktober 2026)
+                      Kies Datum (vanaf heden)
                     </label>
                     <input
                       type="date"
                       required
-                      min="2026-10-01"
+                      min={new Date().toISOString().split('T')[0]}
                       value={newDateVal}
                       onChange={e => setNewDateVal(e.target.value)}
                       className="w-full px-3 py-2 text-xs rounded-xl border border-[#D5C7B8] bg-[#FAF7F2] text-[#2A211D]"
@@ -639,8 +640,12 @@ export const PhotographerAdmin: React.FC = () => {
                         <div className="flex items-center space-x-2 text-xs bg-[#F2ECE1] px-3 py-1.5 rounded-xl text-[#2A211D]">
                           <Calendar className="w-3.5 h-3.5 text-[#A67C46]" />
                           <span className="font-semibold">{booking.date}</span>
-                          <span>•</span>
-                          <span>{booking.timeSlotTime}</span>
+                          {booking.timeSlotTime && (
+                            <>
+                              <span>•</span>
+                              <span>{booking.timeSlotTime}</span>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -658,15 +663,17 @@ export const PhotographerAdmin: React.FC = () => {
                             {booking.clientPhone}
                           </a>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="w-3.5 h-3.5 text-[#A67C46] shrink-0" />
-                          <span>{booking.preferredLocation}</span>
-                        </div>
+                        {booking.preferredLocation && (
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="w-3.5 h-3.5 text-[#A67C46] shrink-0" />
+                            <span>{booking.preferredLocation}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Group and message */}
                       <div className="p-3 bg-[#F5F0E8] rounded-xl text-xs space-y-1">
-                        <p><strong>Gezelschap:</strong> {booking.groupSize}</p>
+                        {booking.groupSize && <p><strong>Gezelschap:</strong> {booking.groupSize}</p>}
                         {booking.message && (
                           <p><strong>Bericht van klant:</strong> "{booking.message}"</p>
                         )}

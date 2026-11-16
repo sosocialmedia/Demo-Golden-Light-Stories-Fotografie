@@ -1,0 +1,85 @@
+[
+  {
+    "date": "2026-11-13",
+    "slots": [
+      { "id": "slot-1101", "time": "10:00 - 11:30", "type": "morning", "label": "Newborn" },
+      { "id": "slot-1102", "time": "14:30 - 15:45", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-11-14",
+    "slots": [
+      { "id": "slot-1103", "time": "10:30 - 11:45", "type": "morning", "label": "Zwangerschap" },
+      { "id": "slot-1104", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-11-18",
+    "slots": [
+      { "id": "slot-1105", "time": "10:00 - 11:15", "type": "morning", "label": "Kinderportret" },
+      { "id": "slot-1106", "time": "14:00 - 15:15", "type": "evening", "label": "Branding" }
+    ]
+  },
+  {
+    "date": "2026-11-20",
+    "slots": [
+      { "id": "slot-1107", "time": "10:00 - 11:30", "type": "morning", "label": "Newborn" },
+      { "id": "slot-1108", "time": "14:30 - 15:45", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-11-21",
+    "slots": [
+      { "id": "slot-1109", "time": "11:00 - 12:15", "type": "morning", "label": "CakeSmash" },
+      { "id": "slot-1110", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-11-25",
+    "slots": [
+      { "id": "slot-1111", "time": "10:30 - 11:45", "type": "morning", "label": "Zwangerschap" }
+    ]
+  },
+  {
+    "date": "2026-11-27",
+    "slots": [
+      { "id": "slot-1112", "time": "10:00 - 11:30", "type": "morning", "label": "Newborn" },
+      { "id": "slot-1113", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-11-28",
+    "slots": [
+      { "id": "slot-1114", "time": "10:30 - 11:45", "type": "morning", "label": "Kinderportret" },
+      { "id": "slot-1115", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-12-04",
+    "slots": [
+      { "id": "slot-1201", "time": "10:00 - 11:30", "type": "morning", "label": "Newborn" },
+      { "id": "slot-1202", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-12-05",
+    "slots": [
+      { "id": "slot-1203", "time": "11:00 - 12:15", "type": "morning", "label": "CakeSmash" },
+      { "id": "slot-1204", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-12-11",
+    "slots": [
+      { "id": "slot-1205", "time": "10:00 - 11:30", "type": "morning", "label": "Newborn" },
+      { "id": "slot-1206", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  },
+  {
+    "date": "2026-12-12",
+    "slots": [
+      { "id": "slot-1207", "time": "10:30 - 11:45", "type": "morning", "label": "Zwangerschap" },
+      { "id": "slot-1208", "time": "14:00 - 15:15", "type": "evening", "label": "Gezin" }
+    ]
+  }
+]

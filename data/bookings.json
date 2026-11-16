@@ -1,0 +1,20 @@
+[
+  {
+    "packageId": "pakket-1",
+    "packageName": "Pakket 1",
+    "date": "2026-11-13",
+    "clientName": "Chinouk Jacobi",
+    "clientEmail": "chinoukjacobi44@gmail.com",
+    "clientPhone": "0642580872",
+    "groupSize": "",
+    "preferredLocation": "In overleg",
+    "message": "",
+    "depositAmount": 50,
+    "depositPaid": true,
+    "paymentMethod": "iDEAL (Rabobank)",
+    "termsAccepted": true,
+    "id": "bk-1794408105092",
+    "createdAt": "2026-11-11T14:41:45.092Z",
+    "status": "bevestigd"
+  }
+]

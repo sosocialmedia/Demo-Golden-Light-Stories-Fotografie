@@ -33,6 +33,8 @@ export const BookingModal: React.FC = () => {
     closeBookingModal,
     packages,
     selectedPackage: initialPackage,
+    selectedDate: initialDate,
+    selectedSlot: initialSlot,
     availableDays,
     createNewBooking,
     openBrochure,
@@ -61,31 +63,38 @@ export const BookingModal: React.FC = () => {
   // Confirmed booking state
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
 
-  // Sync initial package when modal opens
+  // Sync initial package, date, and slot when modal opens
   React.useEffect(() => {
     if (initialPackage) {
       setChosenPackage(initialPackage);
     }
   }, [initialPackage]);
 
-  // Reset when opening
   React.useEffect(() => {
     if (isBookingModalOpen) {
       if (!confirmedBooking) {
-        setStep(1);
+        if (initialDate && initialPackage) {
+          setChosenDate(initialDate);
+          setChosenPackage(initialPackage);
+          setStep(3); // Beide al geselecteerd -> direct naar gegevens & aanbetaling!
+        } else if (initialDate) {
+          setChosenDate(initialDate);
+          setStep(1); // Datum aangeklikt in de agenda -> vraag voor welke shoot het is!
+        } else if (initialPackage) {
+          setChosenPackage(initialPackage);
+          setStep(2); // Pakket aangeklikt -> vraag de gewenste datum!
+        } else {
+          setStep(1);
+        }
       }
     }
-  }, [isBookingModalOpen]);
+  }, [isBookingModalOpen, initialDate, initialPackage]);
 
-  // Filter available days that have at least one unbooked slot and are in future
+  // Filter available days (from today onwards)
   const activeAvailableDays = useMemo(() => {
-    const today = '2026-10-01';
+    const today = new Date().toISOString().split('T')[0];
     return availableDays.filter(day => !day.isBlocked && day.date >= today);
   }, [availableDays]);
-
-  const selectedDayObj = useMemo(() => {
-    return availableDays.find(d => d.date === chosenDate);
-  }, [availableDays, chosenDate]);
 
   // Calculation helpers
   const depositNum = defaultDepositAmount || 50;
@@ -108,17 +117,11 @@ export const BookingModal: React.FC = () => {
 
   const handleDateSelect = (dateStr: string) => {
     setChosenDate(dateStr);
-    setChosenSlot(null);
-  };
-
-  const handleSlotSelect = (slot: TimeSlot) => {
-    if (slot.isBooked) return;
-    setChosenSlot(slot);
   };
 
   const handleSubmitBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chosenPackage || !chosenDate || !chosenSlot) return;
+    if (!chosenPackage || !chosenDate) return;
     if (!termsAccepted) {
       alert('Gelieve akkoord te gaan met de algemene voorwaarden om de reservering te voltooien.');
       return;
@@ -132,9 +135,6 @@ export const BookingModal: React.FC = () => {
         packageId: chosenPackage.id,
         packageName: chosenPackage.title,
         date: chosenDate,
-        timeSlotId: chosenSlot.id,
-        timeSlotLabel: chosenSlot.label,
-        timeSlotTime: chosenSlot.time,
         clientName,
         clientEmail,
         clientPhone,
@@ -157,7 +157,7 @@ export const BookingModal: React.FC = () => {
       } catch (err) {
         console.error('Could not auto-open terms PDF', err);
       }
-    }, 700);
+    }, 600);
   };
 
   // Format nice Dutch date
@@ -215,7 +215,7 @@ export const BookingModal: React.FC = () => {
                 1
               </span>
               <span className={step === 1 ? 'text-[#2A211D] font-semibold' : 'text-[#705E53]'}>
-                Pakket
+                Fotoshoot
               </span>
             </div>
             <div className="h-[1px] w-6 sm:w-10 bg-[#D5C7B8]" />
@@ -224,7 +224,7 @@ export const BookingModal: React.FC = () => {
                 2
               </span>
               <span className={step === 2 ? 'text-[#2A211D] font-semibold' : 'text-[#705E53]'}>
-                Datum & Slot
+                Datum
               </span>
             </div>
             <div className="h-[1px] w-6 sm:w-10 bg-[#D5C7B8]" />
@@ -267,6 +267,26 @@ export const BookingModal: React.FC = () => {
                   <span>Bekijk Brochure & Tarieven</span>
                 </button>
               </div>
+
+              {/* If a date was already chosen from the calendar */}
+              {chosenDate && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Geselecteerde datum:{' '}
+                      <strong className="capitalize">{formatDutchDate(chosenDate)}</strong>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-[11px] text-[#A67C46] underline hover:text-[#2A211D]"
+                  >
+                    Datum wijzigen
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-3">
                 {packages.map(pkg => {
@@ -337,17 +357,17 @@ export const BookingModal: React.FC = () => {
 
                 <button
                   disabled={!chosenPackage}
-                  onClick={() => setStep(2)}
-                  className="flex items-center space-x-2 bg-[#2A211D] hover:bg-[#3D312A] text-[#FAF7F2] px-6 py-3 rounded-full text-xs uppercase tracking-widest font-semibold transition-all disabled:opacity-50 shadow-xs"
+                  onClick={() => setStep(chosenDate ? 3 : 2)}
+                  className="flex items-center space-x-2 bg-[#2A211D] hover:bg-[#3D312A] text-[#FAF7F2] px-6 py-3 rounded-full text-xs uppercase tracking-widest font-semibold transition-all disabled:opacity-50 shadow-xs cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <span>Kies Beschikbare Datum</span>
+                  <span>{chosenDate ? 'Verder naar Gegevens & Aanbetaling' : 'Kies Gewenste Datum'}</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* STEP 2: Select Date & Available Time Slot */}
+          {/* STEP 2: Select Date Only (No time slots) */}
           {step === 2 && (
             <div className="space-y-5">
               <div>
@@ -355,21 +375,22 @@ export const BookingModal: React.FC = () => {
                   className="text-xl text-[#2A211D] font-normal"
                   style={{ fontFamily: "'Bodoni Moda', Georgia, serif" }}
                 >
-                  Stap 2: Kies een datum & tijdslot
+                  Stap 2: Kies een gewenste datum
                 </h4>
                 <p className="text-xs text-[#5A4D45]">
-                  Onderstaande data zijn actueel vrijgegeven. Met de aanbetaling van € {depositNum},- reserveer je dit slot direct.
+                  Selecteer hieronder de datum voor jullie fotoshoot. Er zijn geen vaste tijdsloten nodig; de gekozen datum wordt direct voor jullie in de agenda gereserveerd.
                 </p>
               </div>
 
               {/* Chosen Package Reminder Banner */}
               <div className="p-3 rounded-xl bg-[#F2ECE1] border border-[#DFCFC0] flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-[#705E53]">Gekozen sessie:</span>{' '}
+                  <span className="text-[#705E53]">Gekozen fotoshoot:</span>{' '}
                   <strong className="text-[#2A211D] font-medium">{chosenPackage?.title}</strong>{' '}
                   <span className="text-[#A67C46] font-semibold">({priceInfo.displayTotal})</span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setStep(1)}
                   className="text-[11px] text-[#A67C46] underline hover:text-[#2A211D]"
                 >
@@ -377,111 +398,85 @@ export const BookingModal: React.FC = () => {
                 </button>
               </div>
 
-              {/* Available Dates Selector */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#705E53] mb-2">
-                  1. Beschikbare Data ({activeAvailableDays.length} data beschikbaar)
+              {/* Available Dates List */}
+              <div className="space-y-3">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#705E53]">
+                  Kies een beschikbare datum
                 </label>
 
                 {activeAvailableDays.length === 0 ? (
                   <div className="p-6 text-center bg-[#FAF7F2] rounded-2xl border border-dashed border-[#DFCFC0]">
                     <p className="text-sm text-[#705E53]">
-                      Er zijn op dit moment geen openstaande data. Neem gerust contact op voor een datum op maat!
+                      Er zijn op dit moment geen openstaande data. Kies hieronder een datum naar wens of neem gerust contact op!
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1">
                     {activeAvailableDays.map(day => {
                       const isSelected = chosenDate === day.date;
-                      const freeSlotsCount = day.slots.filter(s => !s.isBooked).length;
                       
                       return (
                         <button
                           key={day.date}
                           type="button"
                           onClick={() => handleDateSelect(day.date)}
-                          className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                          className={`p-3.5 rounded-xl border text-left transition-all flex items-center justify-between ${
                             isSelected
                               ? 'bg-[#2A211D] border-[#2A211D] text-white shadow-xs'
                               : 'bg-[#FAF7F2] border-[#E0D6CB] hover:bg-[#F2ECE1] text-[#2A211D]'
                           }`}
                         >
-                          <div className="flex items-center justify-between w-full">
+                          <div className="space-y-0.5">
                             <span
-                              className="text-base font-medium capitalize"
+                              className="text-base font-medium capitalize block"
                               style={{ fontFamily: "'Bodoni Moda', Georgia, serif" }}
                             >
                               {formatDutchDate(day.date)}
                             </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                              isSelected ? 'bg-white/20 text-white' : 'bg-[#EFE7DC] text-[#705E53]'
+                            <span className={`text-[10px] block font-light ${
+                              isSelected ? 'text-[#E6C9A2]' : 'text-[#705E53]'
                             }`}>
-                              {freeSlotsCount} {freeSlotsCount === 1 ? 'slot' : 'slots'}
+                              Beschikbaar voor fotoshoot
                             </span>
+                          </div>
+
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-[#A67C46] border-[#A67C46] text-white' : 'border-[#D5C7B8]'
+                          }`}>
+                            {isSelected && <Check className="w-3 h-3" />}
                           </div>
                         </button>
                       );
                     })}
                   </div>
                 )}
-              </div>
 
-              {/* Time slots for selected date */}
-              {chosenDate && selectedDayObj && (
-                <div className="pt-2 animate-in fade-in duration-200">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#705E53] mb-2">
-                    2. Kies een tijdslot op {formatDutchDate(chosenDate)}
+                {/* Direct Custom Date Picker Input */}
+                <div className="pt-2 border-t border-[#E8DFD5]/80">
+                  <label className="block text-xs font-medium text-[#705E53] mb-1.5">
+                    Of kies zelf een specifieke datum in de kalender:
                   </label>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedDayObj.slots.map(slot => {
-                      const isBooked = !!slot.isBooked;
-                      const isSelected = chosenSlot?.id === slot.id;
-
-                      return (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          disabled={isBooked}
-                          onClick={() => handleSlotSelect(slot)}
-                          className={`p-3.5 rounded-xl border text-left transition-all ${
-                            isBooked
-                              ? 'bg-[#F0EBE3]/50 border-dashed border-[#D5C7B8] opacity-50 cursor-not-allowed'
-                              : isSelected
-                              ? 'bg-[#F2ECE1] border-[#A67C46] ring-2 ring-[#A67C46] shadow-xs'
-                              : 'bg-[#FAF7F2] border-[#E0D6CB] hover:bg-[#F5F0E8]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <Clock className="w-4 h-4 text-[#A67C46]" />
-                              <div>
-                                <span className="font-semibold text-xs text-[#2A211D] block">
-                                  {slot.time}
-                                </span>
-                                {slot.label && slot.label !== 'Beschikbaar' && (
-                                  <span className="text-[10px] text-[#A67C46] font-medium block">
-                                    {slot.label}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            {isBooked ? (
-                              <span className="text-[10px] uppercase tracking-wider text-red-600 font-semibold">
-                                Bezet
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-[#A67C46] font-medium bg-[#EFE7DC] px-2 py-0.5 rounded-full">
-                                Beschikbaar
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={chosenDate}
+                    onChange={e => handleDateSelect(e.target.value)}
+                    className="w-full sm:w-auto px-3.5 py-2 text-xs rounded-xl border border-[#D5C7B8] bg-white text-[#2A211D] focus:outline-none focus:ring-1 focus:ring-[#A67C46]"
+                  />
                 </div>
-              )}
+
+                {/* Selected Date Confirmation Pill */}
+                {chosenDate && (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center space-x-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Gekozen datum:{' '}
+                      <strong className="capitalize">{formatDutchDate(chosenDate)}</strong>{' '}
+                      (deze datum wordt direct in de agenda gezet)
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Navigation buttons */}
               <div className="pt-4 flex items-center justify-between border-t border-[#E8DFD5]">
@@ -491,13 +486,13 @@ export const BookingModal: React.FC = () => {
                   className="flex items-center space-x-1.5 text-xs text-[#5A4D45] hover:text-[#2A211D]"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span>Terug naar Pakketten</span>
+                  <span>Terug naar Fotoshoot</span>
                 </button>
 
                 <button
-                  disabled={!chosenDate || !chosenSlot}
+                  disabled={!chosenDate}
                   onClick={() => setStep(3)}
-                  className="flex items-center space-x-2 bg-[#2A211D] hover:bg-[#3D312A] text-[#FAF7F2] px-6 py-3 rounded-full text-xs uppercase tracking-widest font-semibold transition-all disabled:opacity-50 shadow-xs"
+                  className="flex items-center space-x-2 bg-[#2A211D] hover:bg-[#3D312A] text-[#FAF7F2] px-6 py-3 rounded-full text-xs uppercase tracking-widest font-semibold transition-all disabled:opacity-50 shadow-xs cursor-pointer disabled:cursor-not-allowed"
                 >
                   <span>Verder naar Gegevens & Aanbetaling</span>
                   <ChevronRight className="w-4 h-4" />
@@ -527,7 +522,7 @@ export const BookingModal: React.FC = () => {
                   <div>
                     <span className="font-semibold text-sm text-[#2A211D] block">{chosenPackage?.title}</span>
                     <span className="text-[11px] text-[#705E53] capitalize">
-                      {chosenDate && formatDutchDate(chosenDate)} • {chosenSlot?.time}
+                      {chosenDate && formatDutchDate(chosenDate)}
                     </span>
                   </div>
                   <div className="text-right">
@@ -766,7 +761,7 @@ export const BookingModal: React.FC = () => {
                     >
                       Algemene Voorwaarden
                     </button>{' '}
-                    en begrijp dat de aanbetaling van € {priceInfo.deposit},- de datum en het tijdslot definitief reserveert.
+                    en begrijp dat de aanbetaling van € {priceInfo.deposit},- vereist is; zodra deze is betaald, wordt de boeking definitief bevestigd.
                   </span>
                 </label>
 
@@ -806,7 +801,7 @@ export const BookingModal: React.FC = () => {
                   ) : (
                     <>
                       <Check className="w-4 h-4 text-[#E6C9A2]" />
-                      <span>Aanbetaling € {priceInfo.deposit},- Voldoen & Reserveren</span>
+                      <span>Aanbetaling € {priceInfo.deposit},- Voldoen & Boeking Bevestigen</span>
                     </>
                   )}
                 </button>
@@ -826,11 +821,11 @@ export const BookingModal: React.FC = () => {
                   className="text-2xl sm:text-3xl text-[#2A211D] font-normal"
                   style={{ fontFamily: "'Bodoni Moda', Georgia, serif" }}
                 >
-                  Jullie shoot is gereserveerd!
+                  Jullie boeking is bevestigd!
                 </h4>
                 <p className="text-xs sm:text-sm text-[#5A4D45] max-w-md mx-auto font-light leading-relaxed">
                   Dankjewel <strong className="text-[#2A211D]">{confirmedBooking.clientName}</strong>!
-                  De datum is direct gereserveerd in de agenda.
+                  De aanbetaling van € {confirmedBooking.depositAmount || 50},- is voldaan, daarmee is jouw boeking definitief bevestigd.
                 </p>
               </div>
 
@@ -838,7 +833,7 @@ export const BookingModal: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-center space-x-2 max-w-md mx-auto">
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span className="font-medium">
-                  Aanbetaling van € {confirmedBooking.depositAmount || 50},- succesvol geregistreerd ({confirmedBooking.paymentMethod || 'iDEAL'})
+                  Aanbetaling € {confirmedBooking.depositAmount || 50},- betaald • Boeking bevestigd ({confirmedBooking.paymentMethod || 'iDEAL'})
                 </span>
               </div>
 
@@ -897,8 +892,8 @@ export const BookingModal: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-[#5A4D45]">
                   <div>
-                    <span className="text-[#705E53] block">Tijdslot:</span>
-                    <strong className="text-[#2A211D]">{confirmedBooking.timeSlotTime}</strong>
+                    <span className="text-[#705E53] block">Status:</span>
+                    <strong className="text-emerald-700 font-semibold">In agenda gezet ✓</strong>
                   </div>
                   <div>
                     <span className="text-[#705E53] block">Naam:</span>

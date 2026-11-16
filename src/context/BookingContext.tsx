@@ -27,8 +27,11 @@ interface BookingContextType {
   defaultDepositAmount: number;
   updateDefaultDepositAmount: (amount: number) => void;
 
+  selectedDate: string | null;
+  selectedSlot: TimeSlot | null;
+
   // Actions
-  openBookingModal: (packageId?: string) => void;
+  openBookingModal: (packageId?: string, initialDate?: string, initialSlot?: TimeSlot) => void;
   closeBookingModal: () => void;
   openPhotographerAdmin: (tab?: AdminTab, storyCategory?: string) => void;
   closePhotographerAdmin: () => void;
@@ -53,14 +56,14 @@ interface BookingContextType {
     packageId: string;
     packageName: string;
     date: string;
-    timeSlotId: string;
-    timeSlotLabel: string;
-    timeSlotTime: string;
+    timeSlotId?: string;
+    timeSlotLabel?: string;
+    timeSlotTime?: string;
     clientName: string;
     clientEmail: string;
     clientPhone: string;
-    groupSize: string;
-    preferredLocation: string;
+    groupSize?: string;
+    preferredLocation?: string;
     message?: string;
     depositAmount?: number;
     depositPaid?: boolean;
@@ -77,24 +80,24 @@ interface BookingContextType {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-const STORAGE_KEY_DAYS = 'golden_light_october2026_days_v4';
-const STORAGE_KEY_BOOKINGS = 'golden_light_october2026_bookings_v4';
+const STORAGE_KEY_DAYS = 'golden_light_nov2026_days_v1';
+const STORAGE_KEY_BOOKINGS = 'golden_light_nov2026_bookings_v1';
 const STORAGE_KEY_STORIES = 'golden_light_stories_data_v2';
 
 export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [availableDays, setAvailableDays] = useState<AvailableDay[]>(() => {
-    const minDate = '2026-10-01';
+    const today = new Date().toISOString().split('T')[0];
     try {
       const saved = localStorage.getItem(STORAGE_KEY_DAYS);
       if (saved) {
         const parsed: AvailableDay[] = JSON.parse(saved);
-        const filtered = parsed.filter(d => d.date >= minDate);
+        const filtered = parsed.filter(d => d.date >= today);
         if (filtered.length > 0) return filtered;
       }
     } catch (e) {
       console.error('Failed to load saved days', e);
     }
-    return INITIAL_AVAILABLE_DAYS.filter(d => d.date >= minDate);
+    return INITIAL_AVAILABLE_DAYS;
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -121,6 +124,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<ShootPackage | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isPhotographerAdminOpen, setIsPhotographerAdminOpen] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('beschikbaarheid');
 
@@ -152,54 +157,65 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
   const closeTerms = () => setIsTermsOpen(false);
 
+  const isInitializedRef = React.useRef(false);
+
   // Initial fetch from server for cross-device synchronization
   useEffect(() => {
-    // 1. Stories
-    fetch('/api/stories')
-      .then(res => res.json())
-      .then(serverStories => {
-        if (serverStories && Array.isArray(serverStories) && serverStories.length > 0) {
-          setStories(serverStories);
-          localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(serverStories));
-        }
-      })
-      .catch(err => console.log('Offline or local stories fallback:', err));
+    let isMounted = true;
 
-    // 2. Days & Slots
-    fetch('/api/days')
-      .then(res => res.json())
-      .then(serverDays => {
-        if (serverDays && Array.isArray(serverDays) && serverDays.length > 0) {
-          setAvailableDays(serverDays);
-          localStorage.setItem(STORAGE_KEY_DAYS, JSON.stringify(serverDays));
-        }
-      })
-      .catch(err => console.log('Offline or local days fallback:', err));
+    async function loadInitialData() {
+      try {
+        const [storiesRes, daysRes, bookingsRes] = await Promise.all([
+          fetch('/api/stories').then(r => r.json()).catch(() => null),
+          fetch('/api/days').then(r => r.json()).catch(() => null),
+          fetch('/api/bookings').then(r => r.json()).catch(() => null),
+        ]);
 
-    // 3. Bookings
-    fetch('/api/bookings')
-      .then(res => res.json())
-      .then(serverBookings => {
-        if (serverBookings && Array.isArray(serverBookings)) {
-          setBookings(serverBookings);
-          localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(serverBookings));
+        if (isMounted) {
+          if (storiesRes && Array.isArray(storiesRes) && storiesRes.length > 0) {
+            setStories(storiesRes);
+            try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(storiesRes)); } catch (_) {}
+          }
+          if (daysRes && Array.isArray(daysRes) && daysRes.length > 0) {
+            const today = new Date().toISOString().split('T')[0];
+            const hasUpcoming = daysRes.some(d => d.date >= today);
+            const toUse = hasUpcoming ? daysRes : INITIAL_AVAILABLE_DAYS;
+            setAvailableDays(toUse);
+            try { localStorage.setItem(STORAGE_KEY_DAYS, JSON.stringify(toUse)); } catch (_) {}
+          }
+          if (bookingsRes && Array.isArray(bookingsRes)) {
+            setBookings(bookingsRes);
+            try { localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookingsRes)); } catch (_) {}
+          }
+          isInitializedRef.current = true;
         }
-      })
-      .catch(err => console.log('Offline or local bookings fallback:', err));
+      } catch (err) {
+        console.error('Failed to load initial data:', err);
+        if (isMounted) isInitializedRef.current = true;
+      }
+    }
+
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Sync to local storage & backend server
+  // Sync to local storage & backend server (only after initial load has finished)
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_DAYS, JSON.stringify(availableDays));
     } catch (e) {
       // ignore
     }
-    fetch('/api/days', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(availableDays),
-    }).catch(err => console.error('Failed to sync days to server:', err));
+    if (isInitializedRef.current) {
+      fetch('/api/days', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(availableDays),
+      }).catch(err => console.error('Failed to sync days to server:', err));
+    }
   }, [availableDays]);
 
   useEffect(() => {
@@ -208,11 +224,13 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {
       // ignore
     }
-    fetch('/api/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bookings),
-    }).catch(err => console.error('Failed to sync bookings to server:', err));
+    if (isInitializedRef.current) {
+      fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookings),
+      }).catch(err => console.error('Failed to sync bookings to server:', err));
+    }
   }, [bookings]);
 
   useEffect(() => {
@@ -221,16 +239,18 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {
       // ignore
     }
-    fetch('/api/stories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(stories),
-    }).catch(err => console.error('Failed to sync stories to server:', err));
+    if (isInitializedRef.current) {
+      fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stories),
+      }).catch(err => console.error('Failed to sync stories to server:', err));
+    }
   }, [stories]);
 
   const addPhotoToStory = (storyId: string, imageUrl: string, isCover = false) => {
-    setStories(prev =>
-      prev.map(story => {
+    setStories(prev => {
+      const updated = prev.map(story => {
         if (story.id !== storyId) return story;
         const newGallery = [...story.galleryImages, imageUrl];
         const newCover = (isCover || !story.coverImage) ? imageUrl : story.coverImage;
@@ -240,13 +260,20 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           galleryImages: newGallery,
           isComingSoon: false,
         };
-      })
-    );
+      });
+      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
+      fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(err => console.error('Failed to immediately save stories:', err));
+      return updated;
+    });
   };
 
   const removePhotoFromStory = (storyId: string, imageIndex: number) => {
-    setStories(prev =>
-      prev.map(story => {
+    setStories(prev => {
+      const updated = prev.map(story => {
         if (story.id !== storyId) return story;
         const removedImg = story.galleryImages[imageIndex];
         const newGallery = story.galleryImages.filter((_, idx) => idx !== imageIndex);
@@ -260,32 +287,53 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           galleryImages: newGallery,
           isComingSoon: newGallery.length === 0,
         };
-      })
-    );
+      });
+      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
+      fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(err => console.error('Failed to immediately save stories:', err));
+      return updated;
+    });
   };
 
   const setStoryCover = (storyId: string, imageUrl: string) => {
-    setStories(prev =>
-      prev.map(story => {
+    setStories(prev => {
+      const updated = prev.map(story => {
         if (story.id !== storyId) return story;
         return {
           ...story,
           coverImage: imageUrl,
         };
-      })
-    );
+      });
+      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
+      fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(err => console.error('Failed to immediately save stories:', err));
+      return updated;
+    });
   };
 
   const toggleStoryComingSoon = (storyId: string, isComingSoon: boolean) => {
-    setStories(prev =>
-      prev.map(story => {
+    setStories(prev => {
+      const updated = prev.map(story => {
         if (story.id !== storyId) return story;
         return {
           ...story,
           isComingSoon,
         };
-      })
-    );
+      });
+      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
+      fetch('/api/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(err => console.error('Failed to immediately save stories:', err));
+      return updated;
+    });
   };
 
   const resetStoriesToDefault = () => {
@@ -293,18 +341,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.removeItem(STORAGE_KEY_STORIES);
   };
 
-  const openBookingModal = (packageId?: string) => {
+  const openBookingModal = (packageId?: string, initialDate?: string, initialSlot?: TimeSlot) => {
     if (packageId) {
       const pkg = PACKAGES.find(p => p.id === packageId) || PACKAGES[0];
       setSelectedPackage(pkg);
     } else {
       setSelectedPackage(PACKAGES[0]);
     }
+    setSelectedDate(initialDate || null);
+    setSelectedSlot(initialSlot || null);
     setIsBookingModalOpen(true);
   };
 
   const closeBookingModal = () => {
     setIsBookingModalOpen(false);
+    setSelectedDate(null);
+    setSelectedSlot(null);
   };
 
   const openPhotographerAdmin = (
@@ -424,14 +476,14 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     packageId: string;
     packageName: string;
     date: string;
-    timeSlotId: string;
-    timeSlotLabel: string;
-    timeSlotTime: string;
+    timeSlotId?: string;
+    timeSlotLabel?: string;
+    timeSlotTime?: string;
     clientName: string;
     clientEmail: string;
     clientPhone: string;
-    groupSize: string;
-    preferredLocation: string;
+    groupSize?: string;
+    preferredLocation?: string;
     message?: string;
     depositAmount?: number;
     depositPaid?: boolean;
@@ -449,18 +501,21 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       termsAccepted: data.termsAccepted ?? true,
     };
 
-    // Mark slot as booked in availableDays so other clients can't book it
+    // Mark slot or entire day as booked in availableDays so other clients can't double-book
     setAvailableDays(prev =>
       prev.map(d => {
         if (d.date !== data.date) return d;
+        const allSlotsBooked = d.slots.map(s => {
+          if (!data.timeSlotId || s.id === data.timeSlotId) {
+            return { ...s, isBooked: true };
+          }
+          return s;
+        });
+        const hasUnbooked = allSlotsBooked.some(s => !s.isBooked);
         return {
           ...d,
-          slots: d.slots.map(s => {
-            if (s.id === data.timeSlotId) {
-              return { ...s, isBooked: true };
-            }
-            return s;
-          }),
+          isBlocked: !hasUnbooked,
+          slots: allSlotsBooked,
         };
       })
     );
@@ -545,6 +600,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveStoryCategory,
         isBookingModalOpen,
         selectedPackage,
+        selectedDate,
+        selectedSlot,
         isPhotographerAdminOpen,
         activeAdminTab,
         isBrochureOpen,

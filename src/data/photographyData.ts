@@ -376,94 +376,92 @@ export const REVIEWS: Review[] = [
   },
 ];
 
-// Initial available dates for October 2026
+// Initial available dates starting from November 2026 onwards
 export const INITIAL_AVAILABLE_DAYS: AvailableDay[] = [
   {
-    date: '2026-10-03',
+    date: '2026-11-13',
     slots: [
-      { id: 'slot-1001', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
-      { id: 'slot-1002', time: '16:00 - 17:15', type: 'evening', label: 'Gezin' },
+      { id: 'slot-1101', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
+      { id: 'slot-1102', time: '14:30 - 15:45', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-06',
+    date: '2026-11-14',
     slots: [
-      { id: 'slot-1003', time: '16:30 - 17:45', type: 'evening', label: 'Pregnancy' },
+      { id: 'slot-1103', time: '10:30 - 11:45', type: 'morning', label: 'Zwangerschap' },
+      { id: 'slot-1104', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-09',
+    date: '2026-11-18',
     slots: [
-      { id: 'slot-1004', time: '14:00 - 15:15', type: 'evening', label: 'Kinder Portret' },
-      { id: 'slot-1005', time: '16:00 - 17:15', type: 'evening', label: 'Gezin' },
+      { id: 'slot-1105', time: '10:00 - 11:15', type: 'morning', label: 'Kinderportret' },
+      { id: 'slot-1106', time: '14:00 - 15:15', type: 'evening', label: 'Branding' },
     ],
   },
   {
-    date: '2026-10-11',
+    date: '2026-11-20',
     slots: [
-      { id: 'slot-1006', time: '11:00 - 12:15', type: 'morning', label: 'Cakesmash' },
-      { id: 'slot-1007', time: '16:00 - 17:15', type: 'evening', label: 'Gezin' },
+      { id: 'slot-1107', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
+      { id: 'slot-1108', time: '14:30 - 15:45', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-14',
+    date: '2026-11-21',
     slots: [
-      { id: 'slot-1008', time: '16:30 - 17:45', type: 'evening', label: 'Pregnancy' },
+      { id: 'slot-1109', time: '11:00 - 12:15', type: 'morning', label: 'CakeSmash' },
+      { id: 'slot-1110', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-17',
+    date: '2026-11-25',
     slots: [
-      { id: 'slot-1009', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
-      { id: 'slot-1010', time: '16:00 - 17:15', type: 'evening', label: 'Gezin' },
+      { id: 'slot-1111', time: '10:30 - 11:45', type: 'morning', label: 'Zwangerschap' },
     ],
   },
   {
-    date: '2026-10-21',
+    date: '2026-11-27',
     slots: [
-      { id: 'slot-1011', time: '14:00 - 15:15', type: 'evening', label: 'Kinder Portret' },
+      { id: 'slot-1112', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
+      { id: 'slot-1113', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-24',
+    date: '2026-11-28',
     slots: [
-      { id: 'slot-1012', time: '11:00 - 12:15', type: 'morning', label: 'Cakesmash' },
-      { id: 'slot-1013', time: '16:00 - 17:15', type: 'evening', label: 'Gezin' },
+      { id: 'slot-1114', time: '10:30 - 11:45', type: 'morning', label: 'Kinderportret' },
+      { id: 'slot-1115', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-28',
+    date: '2026-12-04',
     slots: [
-      { id: 'slot-1014', time: '16:30 - 17:45', type: 'evening', label: 'Pregnancy' },
+      { id: 'slot-1201', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
+      { id: 'slot-1202', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
     ],
   },
   {
-    date: '2026-10-31',
+    date: '2026-12-05',
     slots: [
-      { id: 'slot-1015', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
-      { id: 'slot-1016', time: '16:00 - 17:15', type: 'evening', label: 'Gezin' },
+      { id: 'slot-1203', time: '11:00 - 12:15', type: 'morning', label: 'CakeSmash' },
+      { id: 'slot-1204', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
+    ],
+  },
+  {
+    date: '2026-12-11',
+    slots: [
+      { id: 'slot-1205', time: '10:00 - 11:30', type: 'morning', label: 'Newborn' },
+      { id: 'slot-1206', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
+    ],
+  },
+  {
+    date: '2026-12-12',
+    slots: [
+      { id: 'slot-1207', time: '10:30 - 11:45', type: 'morning', label: 'Zwangerschap' },
+      { id: 'slot-1208', time: '14:00 - 15:15', type: 'evening', label: 'Gezin' },
     ],
   },
 ];
 
-// Sample initial bookings for October 2026
-export const INITIAL_BOOKINGS: Booking[] = [
-  {
-    id: 'bk-101',
-    packageId: 'gezin-shoot',
-    packageName: 'Gezin',
-    date: '2026-10-03',
-    timeSlotId: 'slot-1002',
-    timeSlotLabel: 'Gezin',
-    timeSlotTime: '16:00 - 17:15',
-    clientName: 'Reservering',
-    clientEmail: 'reservering@example.nl',
-    clientPhone: '',
-    groupSize: '',
-    preferredLocation: '',
-    message: '',
-    createdAt: '2026-10-01T08:00:00Z',
-    status: 'bevestigd',
-    notes: '',
-  },
-];
+// Sample initial bookings
+export const INITIAL_BOOKINGS: Booking[] = [];

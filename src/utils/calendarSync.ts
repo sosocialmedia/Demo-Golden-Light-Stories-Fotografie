@@ -4,34 +4,38 @@ import { Booking } from '../types';
  * Generates a direct Google Calendar web event creation link
  */
 export function createGoogleCalendarUrl(booking: Booking): string {
-  const [startTimeStr, endTimeStr] = booking.timeSlotTime.split('-').map(s => s.trim());
-  
-  // Format date and times into YYYYMMDDTHHmmssZ
-  // Example: 2026-09-20 and 18:45 -> 20260920T184500
-  const cleanDate = booking.date.replace(/-/g, '');
-  const formatTime = (tStr?: string) => {
-    if (!tStr) return '180000';
-    return tStr.replace(':', '') + '00';
-  };
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cleanDate = (booking.date || todayStr).replace(/-/g, '');
+  let startFormatted = `${cleanDate}T100000`;
+  let endFormatted = `${cleanDate}T120000`;
 
-  const startFormatted = `${cleanDate}T${formatTime(startTimeStr)}`;
-  const endFormatted = `${cleanDate}T${formatTime(endTimeStr || '2000')}`;
+  if (booking.timeSlotTime && booking.timeSlotTime.includes('-')) {
+    const parts = booking.timeSlotTime.split('-').map(s => s.trim());
+    const startTimeStr = parts[0] || '10:00';
+    const endTimeStr = parts[1] || '12:00';
+    const formatTime = (tStr?: string) => {
+      if (!tStr) return '100000';
+      const clean = tStr.replace(/[^0-9]/g, '');
+      return clean.padEnd(4, '0') + '00';
+    };
+    startFormatted = `${cleanDate}T${formatTime(startTimeStr)}`;
+    endFormatted = `${cleanDate}T${formatTime(endTimeStr)}`;
+  }
 
-  const title = encodeURIComponent(`${booking.packageName} – ${booking.clientName} [Golden Light Stories]`);
+  const title = encodeURIComponent(`${booking.packageName} – ${booking.clientName} [Golden Light Stories Fotografie]`);
   const details = encodeURIComponent(
     `Fotoshoot met ${booking.clientName}\n` +
-    `Pakket: ${booking.packageName}\n` +
-    `Tijdslot: ${booking.timeSlotLabel} (${booking.timeSlotTime})\n` +
-    `Locatievoorkeur: ${booking.preferredLocation}\n` +
-    `Telefoon: ${booking.clientPhone}\n` +
-    `E-mail: ${booking.clientEmail}\n` +
-    `Groep: ${booking.groupSize}\n` +
-    (booking.message ? `Bericht: ${booking.message}\n` : '') +
-    `\nGolden Light Stories Fotografie\nInstagram: @goldenls_photography`
+    `Gekozen shoot: ${booking.packageName}\n` +
+    `Datum: ${booking.date}\n` +
+    (booking.timeSlotTime ? `Tijdslot: ${booking.timeSlotTime}\n` : '') +
+    `Telefoon: ${booking.clientPhone || '-'}\n` +
+    `E-mail: ${booking.clientEmail || '-'}\n` +
+    (booking.message ? `Notitie: ${booking.message}\n` : '') +
+    `\nGolden Light Stories Fotografie\nLocatie: In overleg\nInstagram: @goldenls_photography`
   );
   const location = encodeURIComponent(booking.preferredLocation || 'In overleg (Nederland)');
 
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startFormatted}/${endFormatted}&details=${details}&location=${location}`;
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startFormatted}/${endFormatted}&ctz=Europe/Amsterdam&details=${details}&location=${location}`;
 }
 
 /**
@@ -39,12 +43,18 @@ export function createGoogleCalendarUrl(booking: Booking): string {
  * compatible with Apple Calendar, Google Calendar, and Microsoft Outlook.
  */
 export function downloadIcsFile(booking: Booking) {
-  const [startTimeStr, endTimeStr] = booking.timeSlotTime.split('-').map(s => s.trim());
-  const cleanDate = booking.date.replace(/-/g, '');
-  const formatTime = (tStr?: string) => (tStr ? tStr.replace(':', '') + '00' : '180000');
-  
-  const dtStart = `${cleanDate}T${formatTime(startTimeStr)}`;
-  const dtEnd = `${cleanDate}T${formatTime(endTimeStr || '2000')}`;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cleanDate = (booking.date || todayStr).replace(/-/g, '');
+  let dtStart = `${cleanDate}T100000`;
+  let dtEnd = `${cleanDate}T120000`;
+
+  if (booking.timeSlotTime && booking.timeSlotTime.includes('-')) {
+    const [startTimeStr, endTimeStr] = booking.timeSlotTime.split('-').map(s => s.trim());
+    const formatTime = (tStr?: string) => (tStr ? tStr.replace(':', '') + '00' : '120000');
+    dtStart = `${cleanDate}T${formatTime(startTimeStr)}`;
+    dtEnd = `${cleanDate}T${formatTime(endTimeStr || '12:00')}`;
+  }
+
   const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
   const icsContent = [
@@ -59,7 +69,7 @@ export function downloadIcsFile(booking: Booking) {
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
     `SUMMARY:${booking.packageName} – Golden Light Stories`,
-    `DESCRIPTION:${booking.packageName} met ${booking.clientName}. Locatie: ${booking.preferredLocation}. Contact: ${booking.clientPhone}`,
+    `DESCRIPTION:${booking.packageName} met ${booking.clientName}. Datum: ${booking.date}. Contact: ${booking.clientPhone}`,
     `LOCATION:${booking.preferredLocation || 'In overleg'}`,
     'STATUS:CONFIRMED',
     'END:VEVENT',
@@ -82,11 +92,17 @@ export function downloadIcsFile(booking: Booking) {
 export function exportAllBookingsIcs(bookings: Booking[]) {
   const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const events = bookings.map(b => {
-    const [startTimeStr, endTimeStr] = b.timeSlotTime.split('-').map(s => s.trim());
-    const cleanDate = b.date.replace(/-/g, '');
-    const formatTime = (tStr?: string) => (tStr ? tStr.replace(':', '') + '00' : '180000');
-    const dtStart = `${cleanDate}T${formatTime(startTimeStr)}`;
-    const dtEnd = `${cleanDate}T${formatTime(endTimeStr || '2000')}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const cleanDate = (b.date || todayStr).replace(/-/g, '');
+    let dtStart = `${cleanDate}T100000`;
+    let dtEnd = `${cleanDate}T120000`;
+
+    if (b.timeSlotTime && b.timeSlotTime.includes('-')) {
+      const [startTimeStr, endTimeStr] = b.timeSlotTime.split('-').map(s => s.trim());
+      const formatTime = (tStr?: string) => (tStr ? tStr.replace(':', '') + '00' : '120000');
+      dtStart = `${cleanDate}T${formatTime(startTimeStr)}`;
+      dtEnd = `${cleanDate}T${formatTime(endTimeStr || '12:00')}`;
+    }
 
     return [
       'BEGIN:VEVENT',
@@ -95,7 +111,7 @@ export function exportAllBookingsIcs(bookings: Booking[]) {
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
       `SUMMARY:Fotoshoot: ${b.clientName} (${b.packageName})`,
-      `DESCRIPTION:Klant: ${b.clientName}\\nTel: ${b.clientPhone}\\nEmail: ${b.clientEmail}\\nPakket: ${b.packageName}\\nLocatie: ${b.preferredLocation}\\nOpmerking: ${b.message || '-'}`,
+      `DESCRIPTION:Klant: ${b.clientName}\\nTel: ${b.clientPhone}\\nEmail: ${b.clientEmail}\\nPakket: ${b.packageName}\\nDatum: ${b.date}\\nOpmerking: ${b.message || '-'}`,
       `LOCATION:${b.preferredLocation || 'Nederland'}`,
       `STATUS:${b.status === 'geannuleerd' ? 'CANCELLED' : 'CONFIRMED'}`,
       'END:VEVENT',
