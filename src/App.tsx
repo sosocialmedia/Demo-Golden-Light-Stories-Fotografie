@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BookingProvider } from './context/BookingContext';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
@@ -17,6 +17,15 @@ import { BrochureModal } from './components/BrochureModal';
 import { TermsModal } from './components/TermsModal';
 
 export default function App() {
+  useEffect(() => {
+    if (!window.location.hash) {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   return (
     <BookingProvider>
       <div className="min-h-screen bg-white text-[#241C18] font-sans selection:bg-[#E8DFD5] selection:text-[#241C18]">

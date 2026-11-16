@@ -194,16 +194,23 @@ export const ClientClosetSection: React.FC = () => {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const hasInteractedRef = useRef(false);
 
   const activeItem = CLOSET_ITEMS[activeIndex];
 
-  // Auto-scroll active thumbnail into view
+  // Horizontally center active thumbnail inside the carousel strip only after user interaction
   useEffect(() => {
-    thumbnailRefs.current[activeIndex]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    });
+    if (!hasInteractedRef.current) {
+      hasInteractedRef.current = true;
+      return;
+    }
+    const container = scrollContainerRef.current;
+    const btn = thumbnailRefs.current[activeIndex];
+    if (container && btn) {
+      const targetLeft =
+        btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+      container.scrollTo({ left: targetLeft, behavior: 'smooth' });
+    }
   }, [activeIndex]);
 
   const handlePrev = (e: React.MouseEvent) => {
