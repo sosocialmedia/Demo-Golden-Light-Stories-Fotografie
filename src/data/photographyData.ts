@@ -103,9 +103,9 @@ export const PACKAGES: ShootPackage[] = [
     deposit: '€ 50,-',
     subtitle: 'Voor wie écht wil uitpakken en een compleet beeldverhaal wil laten vastleggen',
     duration: '90 minuten',
-    description: 'Voor wie écht wil uitpakken. Dit uitgebreide pakket biedt ruimte voor 1 tot 6 personen en levert maar liefst 35-45 bewerkte beelden op. Ideaal voor bijzondere momenten, grotere shoots of wanneer je een compleet verhaal wilt laten vastleggen. Voor een meerprijs van 75 euro kan studio Vita worden bij geboekt.',
+    description: 'Voor wie écht wil uitpakken. Dit uitgebreide pakket biedt ruimte voor 1 tot 6 personen en levert maar liefst 40-50 bewerkte beelden op. Ideaal voor bijzondere momenten, grotere shoots of wanneer je een compleet verhaal wilt laten vastleggen. Voor een meerprijs van 75 euro kan studio Vita worden bij geboekt.',
     inclusions: [
-      'Maar liefst 35 tot 45 bewerkte beelden in hoge resolutie',
+      'Maar liefst 40 tot 50 bewerkte beelden in hoge resolutie',
       'Geschikt voor 1 tot 6 personen',
       'Compleet en uitgebreid herinneringsverhaal met alle rust',
       'Optie: Voor een meerprijs van € 75,- kan studio Vita worden bijgeboekt',

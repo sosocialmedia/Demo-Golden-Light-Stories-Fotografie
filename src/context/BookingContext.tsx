@@ -1,4 +1,17 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { AvailableDay, Booking, BookingStatus, ShootPackage, TimeSlot, LoveStoryItem } from '../types';
 import { INITIAL_AVAILABLE_DAYS, INITIAL_BOOKINGS, PACKAGES, GOLDEN_STORIES } from '../data/photographyData';
 import { openBrochurePdf, openTermsPdf } from '../utils/pdfDownload';
@@ -35,13 +48,15 @@ interface BookingContextType {
   closeBookingModal: () => void;
   openPhotographerAdmin: (tab?: AdminTab, storyCategory?: string) => void;
   closePhotographerAdmin: () => void;
+  setVerifiedAdminPin: (pin: string) => void;
+  updateCloudAdminPin: (newPin: string, previousPin: string) => Promise<void>;
   
-  // Photo management by Photographer
-  addPhotoToStory: (storyId: string, imageUrl: string, isCover?: boolean) => void;
-  removePhotoFromStory: (storyId: string, imageIndex: number) => void;
-  setStoryCover: (storyId: string, imageUrl: string) => void;
-  toggleStoryComingSoon: (storyId: string, isComingSoon: boolean) => void;
-  resetStoriesToDefault: () => void;
+  // Photo management by Photographer (persisted in Cloud Firestore)
+  addPhotoToStory: (storyId: string, imageUrl: string, isCover?: boolean) => Promise<void>;
+  removePhotoFromStory: (storyId: string, imageUrl: string) => Promise<void>;
+  setStoryCover: (storyId: string, imageUrl: string) => Promise<void>;
+  toggleStoryComingSoon: (storyId: string, isComingSoon: boolean) => Promise<void>;
+  resetStoriesToDefault: () => Promise<void>;
   
   // Calendar Management by Photographer
   addAvailableDate: (date: string, locationNote?: string) => void;
@@ -82,7 +97,76 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 const STORAGE_KEY_DAYS = 'golden_light_nov2026_days_v1';
 const STORAGE_KEY_BOOKINGS = 'golden_light_nov2026_bookings_v1';
-const STORAGE_KEY_STORIES = 'golden_light_stories_data_v2';
+const STORAGE_KEY_STORIES_CACHE = 'golden_light_stories_cloud_cache_v1';
+
+interface CloudStoryPhoto {
+  id: string;
+  storyId: string;
+  imageUrl: string;
+  isDeleted: boolean;
+  createdAtMs: number;
+}
+
+interface CloudStoryConfig {
+  storyId: string;
+  coverImage: string;
+  isComingSoon: boolean;
+  removedImages: string[];
+}
+
+function mergeStoriesWithCloud(
+  baseStories: LoveStoryItem[],
+  cloudPhotos: CloudStoryPhoto[],
+  configsMap: Record<string, CloudStoryConfig>
+): LoveStoryItem[] {
+  return baseStories.map((base) => {
+    const cfg = configsMap[base.id];
+    const photosForStory = cloudPhotos
+      .filter((p) => p.storyId === base.id && !p.isDeleted)
+      .map((p) => p.imageUrl);
+
+    if (!cfg && photosForStory.length === 0) return base;
+
+    const removedSet = new Set(Array.isArray(cfg?.removedImages) ? cfg.removedImages : []);
+    const baseFiltered = base.galleryImages.filter((img) => !removedSet.has(img));
+    const galleryImages = [...baseFiltered];
+    for (const url of photosForStory) {
+      if (!removedSet.has(url) && !galleryImages.includes(url)) {
+        galleryImages.push(url);
+      }
+    }
+
+    let coverImage = '';
+    if (
+      cfg?.coverImage &&
+      !removedSet.has(cfg.coverImage) &&
+      (galleryImages.includes(cfg.coverImage) ||
+        cfg.coverImage.startsWith('data:image') ||
+        cfg.coverImage.startsWith('http') ||
+        cfg.coverImage.startsWith('/uploads/'))
+    ) {
+      coverImage = cfg.coverImage;
+    } else if (base.coverImage && !removedSet.has(base.coverImage)) {
+      coverImage = base.coverImage;
+    } else if (galleryImages.length > 0) {
+      coverImage = galleryImages[0];
+    }
+
+    const hasMedia = galleryImages.length > 0 || Boolean(coverImage);
+    const isComingSoon = hasMedia
+      ? typeof cfg?.isComingSoon === 'boolean'
+        ? cfg.isComingSoon
+        : false
+      : true;
+
+    return {
+      ...base,
+      coverImage,
+      galleryImages,
+      isComingSoon,
+    };
+  });
+}
 
 export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [availableDays, setAvailableDays] = useState<AvailableDay[]>(() => {
@@ -110,15 +194,61 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return INITIAL_BOOKINGS;
   });
 
-  const [stories, setStories] = useState<LoveStoryItem[]>(() => {
+  const [cloudPhotos, setCloudPhotos] = useState<CloudStoryPhoto[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY_STORIES);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load saved stories', e);
+      const cached = localStorage.getItem(STORAGE_KEY_STORIES_CACHE);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.photos)) return parsed.photos;
+      }
+    } catch {
+      // ignore cache parse errors
     }
-    return GOLDEN_STORIES;
+    return [];
   });
+
+  const [storyConfigsMap, setStoryConfigsMap] = useState<Record<string, CloudStoryConfig>>(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY_STORIES_CACHE);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.configs && typeof parsed.configs === 'object') return parsed.configs;
+      }
+    } catch {
+      // ignore cache parse errors
+    }
+    return {};
+  });
+
+  const [verifiedAdminPin, setVerifiedAdminPinState] = useState<string>(() => {
+    try {
+      return (localStorage.getItem('golden_light_admin_pin') || '').trim() || '2026';
+    } catch {
+      return '2026';
+    }
+  });
+
+  const setVerifiedAdminPin = useCallback((pin: string) => {
+    const cleaned = pin.trim() || '2026';
+    setVerifiedAdminPinState(cleaned);
+  }, []);
+
+  const stories = useMemo(
+    () => mergeStoriesWithCloud(GOLDEN_STORIES, cloudPhotos, storyConfigsMap),
+    [cloudPhotos, storyConfigsMap]
+  );
+
+  // Cache lightweight metadata/urls when Firestore updates
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY_STORIES_CACHE,
+        JSON.stringify({ photos: cloudPhotos, configs: storyConfigsMap })
+      );
+    } catch {
+      // Ignore localStorage quota exceeded on large galleries; Firestore is source of truth
+    }
+  }, [cloudPhotos, storyConfigsMap]);
 
   const [activeStoryCategory, setActiveStoryCategory] = useState<string>('story-newborn');
 
@@ -159,23 +289,87 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const isInitializedRef = React.useRef(false);
 
-  // Initial fetch from server for cross-device synchronization
+  // Real-time Firestore listeners for Story Photos & Category Configs (syncs live across all devices/URLs)
+  useEffect(() => {
+    const photosQuery = query(
+      collection(db, 'storyPhotos'),
+      where('isDeleted', '==', false)
+    );
+
+    const unsubscribePhotos = onSnapshot(
+      photosQuery,
+      (snapshot) => {
+        const loaded: CloudStoryPhoto[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const createdAt = data.createdAt instanceof Timestamp
+            ? data.createdAt.toMillis()
+            : Date.now();
+          loaded.push({
+            id: String(data.id || docSnap.id),
+            storyId: String(data.storyId || ''),
+            imageUrl: String(data.imageUrl || ''),
+            isDeleted: Boolean(data.isDeleted),
+            createdAtMs: createdAt,
+          });
+        });
+        loaded.sort((a, b) => a.createdAtMs - b.createdAtMs);
+        setCloudPhotos(loaded);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'storyPhotos');
+      }
+    );
+
+    // Subscribe to each of the 6 story category config docs via allow get
+    const configUnsubs = GOLDEN_STORIES.map((story) =>
+      onSnapshot(
+        doc(db, 'storyConfigs', story.id),
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setStoryConfigsMap((prev) => ({
+              ...prev,
+              [story.id]: {
+                storyId: story.id,
+                coverImage: typeof data.coverImage === 'string' ? data.coverImage : '',
+                isComingSoon: Boolean(data.isComingSoon),
+                removedImages: Array.isArray(data.removedImages) ? data.removedImages : [],
+              },
+            }));
+          } else {
+            setStoryConfigsMap((prev) => {
+              if (!prev[story.id]) return prev;
+              const next = { ...prev };
+              delete next[story.id];
+              return next;
+            });
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.GET, `storyConfigs/${story.id}`);
+        }
+      )
+    );
+
+    return () => {
+      unsubscribePhotos();
+      configUnsubs.forEach((u) => u());
+    };
+  }, []);
+
+  // Initial fetch from server for days & bookings
   useEffect(() => {
     let isMounted = true;
 
     async function loadInitialData() {
       try {
-        const [storiesRes, daysRes, bookingsRes] = await Promise.all([
-          fetch('/api/stories').then(r => r.json()).catch(() => null),
-          fetch('/api/days').then(r => r.json()).catch(() => null),
-          fetch('/api/bookings').then(r => r.json()).catch(() => null),
+        const [daysRes, bookingsRes] = await Promise.all([
+          fetch('/api/days', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null),
+          fetch('/api/bookings', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).catch(() => null),
         ]);
 
         if (isMounted) {
-          if (storiesRes && Array.isArray(storiesRes) && storiesRes.length > 0) {
-            setStories(storiesRes);
-            try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(storiesRes)); } catch (_) {}
-          }
           if (daysRes && Array.isArray(daysRes) && daysRes.length > 0) {
             const today = new Date().toISOString().split('T')[0];
             const hasUpcoming = daysRes.some(d => d.date >= today);
@@ -233,112 +427,192 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [bookings]);
 
-  useEffect(() => {
+  const upsertStoryConfig = async (
+    storyId: string,
+    buildNext: (existing: CloudStoryConfig | null) => CloudStoryConfig
+  ) => {
+    const configPath = `storyConfigs/${storyId}`;
+    const configRef = doc(db, 'storyConfigs', storyId);
     try {
-      localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(stories));
-    } catch (e) {
-      // ignore
+      const snap = await getDoc(configRef);
+      const current: CloudStoryConfig | null = snap.exists()
+        ? {
+            storyId,
+            coverImage: typeof snap.data().coverImage === 'string' ? snap.data().coverImage : '',
+            isComingSoon: Boolean(snap.data().isComingSoon),
+            removedImages: Array.isArray(snap.data().removedImages) ? snap.data().removedImages : [],
+          }
+        : null;
+      const next = buildNext(current);
+      if (!snap.exists()) {
+        await setDoc(configRef, {
+          storyId,
+          coverImage: next.coverImage,
+          isComingSoon: next.isComingSoon,
+          removedImages: next.removedImages.slice(0, 30),
+          adminPin: verifiedAdminPin,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await updateDoc(configRef, {
+          coverImage: next.coverImage,
+          isComingSoon: next.isComingSoon,
+          removedImages: next.removedImages.slice(0, 30),
+          adminPin: verifiedAdminPin,
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, configPath);
     }
-    if (isInitializedRef.current) {
-      fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stories),
-      }).catch(err => console.error('Failed to sync stories to server:', err));
-    }
-  }, [stories]);
+  };
 
-  const addPhotoToStory = (storyId: string, imageUrl: string, isCover = false) => {
-    setStories(prev => {
-      const updated = prev.map(story => {
-        if (story.id !== storyId) return story;
-        const newGallery = [...story.galleryImages, imageUrl];
-        const newCover = (isCover || !story.coverImage) ? imageUrl : story.coverImage;
-        return {
-          ...story,
-          coverImage: newCover,
-          galleryImages: newGallery,
-          isComingSoon: false,
-        };
+  const addPhotoToStory = async (storyId: string, imageUrl: string, isCover = false) => {
+    const photoId = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const photoPath = `storyPhotos/${photoId}`;
+    try {
+      await setDoc(doc(db, 'storyPhotos', photoId), {
+        id: photoId,
+        storyId,
+        imageUrl,
+        isDeleted: false,
+        adminPin: verifiedAdminPin,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
-      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
-      fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      }).catch(err => console.error('Failed to immediately save stories:', err));
-      return updated;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, photoPath);
+    }
+
+    const currentStory = stories.find((s) => s.id === storyId);
+    await upsertStoryConfig(storyId, (existingCfg) => {
+      const existingCover = existingCfg?.coverImage || currentStory?.coverImage || '';
+      const nextCover = isCover || !existingCover ? imageUrl : existingCover;
+      const nextRemoved = (existingCfg?.removedImages || []).filter((u) => u !== imageUrl);
+      return {
+        storyId,
+        coverImage: nextCover,
+        isComingSoon: false,
+        removedImages: nextRemoved,
+      };
     });
   };
 
-  const removePhotoFromStory = (storyId: string, imageIndex: number) => {
-    setStories(prev => {
-      const updated = prev.map(story => {
-        if (story.id !== storyId) return story;
-        const removedImg = story.galleryImages[imageIndex];
-        const newGallery = story.galleryImages.filter((_, idx) => idx !== imageIndex);
-        let newCover = story.coverImage;
-        if (story.coverImage === removedImg) {
-          newCover = newGallery.length > 0 ? newGallery[0] : '';
+  const removePhotoFromStory = async (storyId: string, imageUrl: string) => {
+    const matchingCloudPhotos = cloudPhotos.filter(
+      (p) => p.storyId === storyId && !p.isDeleted && p.imageUrl === imageUrl
+    );
+
+    for (const p of matchingCloudPhotos) {
+      const path = `storyPhotos/${p.id}`;
+      try {
+        await updateDoc(doc(db, 'storyPhotos', p.id), {
+          isDeleted: true,
+          adminPin: verifiedAdminPin,
+          updatedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, path);
+      }
+    }
+
+    const currentStory = stories.find((s) => s.id === storyId);
+    const remaining = (currentStory?.galleryImages || []).filter((img) => img !== imageUrl);
+    const isBuiltInAsset =
+      !imageUrl.startsWith('data:image') &&
+      !imageUrl.startsWith('http') &&
+      !imageUrl.startsWith('/uploads/');
+
+    await upsertStoryConfig(storyId, (existingCfg) => {
+      const baseRemoved = existingCfg?.removedImages || [];
+      const nextRemoved =
+        isBuiltInAsset && !baseRemoved.includes(imageUrl)
+          ? [...baseRemoved, imageUrl]
+          : baseRemoved;
+      let nextCover = existingCfg?.coverImage || currentStory?.coverImage || '';
+      if (nextCover === imageUrl) {
+        nextCover = remaining[0] || '';
+      }
+      return {
+        storyId,
+        coverImage: nextCover,
+        isComingSoon: remaining.length === 0,
+        removedImages: nextRemoved,
+      };
+    });
+  };
+
+  const setStoryCover = async (storyId: string, imageUrl: string) => {
+    await upsertStoryConfig(storyId, (existingCfg) => ({
+      storyId,
+      coverImage: imageUrl,
+      isComingSoon: false,
+      removedImages: existingCfg?.removedImages || [],
+    }));
+  };
+
+  const toggleStoryComingSoon = async (storyId: string, isComingSoon: boolean) => {
+    const currentStory = stories.find((s) => s.id === storyId);
+    await upsertStoryConfig(storyId, (existingCfg) => ({
+      storyId,
+      coverImage: existingCfg?.coverImage ?? currentStory?.coverImage ?? '',
+      isComingSoon,
+      removedImages: existingCfg?.removedImages || [],
+    }));
+  };
+
+  const resetStoriesToDefault = async () => {
+    for (const p of cloudPhotos.filter((item) => !item.isDeleted)) {
+      const path = `storyPhotos/${p.id}`;
+      try {
+        await updateDoc(doc(db, 'storyPhotos', p.id), {
+          isDeleted: true,
+          adminPin: verifiedAdminPin,
+          updatedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, path);
+      }
+    }
+
+    for (const base of GOLDEN_STORIES) {
+      if (storyConfigsMap[base.id]) {
+        await upsertStoryConfig(base.id, () => ({
+          storyId: base.id,
+          coverImage: '',
+          isComingSoon: Boolean(base.isComingSoon),
+          removedImages: [],
+        }));
+      }
+    }
+    localStorage.removeItem(STORAGE_KEY_STORIES_CACHE);
+  };
+
+  const updateCloudAdminPin = async (newPin: string, previousPin: string) => {
+    const pinRef = doc(db, 'appConfig', 'adminPin');
+    try {
+      await updateDoc(pinRef, {
+        pin: newPin,
+        currentPin: previousPin,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (updateErr: any) {
+      if (updateErr?.code === 'not-found' || String(updateErr?.message || '').includes('No document to update')) {
+        try {
+          await setDoc(pinRef, {
+            pin: newPin,
+            currentPin: previousPin,
+            updatedAt: serverTimestamp(),
+          });
+        } catch (createErr) {
+          handleFirestoreError(createErr, OperationType.CREATE, 'appConfig/adminPin');
         }
-        return {
-          ...story,
-          coverImage: newCover,
-          galleryImages: newGallery,
-          isComingSoon: newGallery.length === 0,
-        };
-      });
-      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
-      fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      }).catch(err => console.error('Failed to immediately save stories:', err));
-      return updated;
-    });
-  };
-
-  const setStoryCover = (storyId: string, imageUrl: string) => {
-    setStories(prev => {
-      const updated = prev.map(story => {
-        if (story.id !== storyId) return story;
-        return {
-          ...story,
-          coverImage: imageUrl,
-        };
-      });
-      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
-      fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      }).catch(err => console.error('Failed to immediately save stories:', err));
-      return updated;
-    });
-  };
-
-  const toggleStoryComingSoon = (storyId: string, isComingSoon: boolean) => {
-    setStories(prev => {
-      const updated = prev.map(story => {
-        if (story.id !== storyId) return story;
-        return {
-          ...story,
-          isComingSoon,
-        };
-      });
-      try { localStorage.setItem(STORAGE_KEY_STORIES, JSON.stringify(updated)); } catch (_) {}
-      fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-      }).catch(err => console.error('Failed to immediately save stories:', err));
-      return updated;
-    });
-  };
-
-  const resetStoriesToDefault = () => {
-    setStories(GOLDEN_STORIES);
-    localStorage.removeItem(STORAGE_KEY_STORIES);
+      } else {
+        handleFirestoreError(updateErr, OperationType.UPDATE, 'appConfig/adminPin');
+      }
+    }
+    setVerifiedAdminPin(newPin);
   };
 
   const openBookingModal = (packageId?: string, initialDate?: string, initialSlot?: TimeSlot) => {
@@ -616,6 +890,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         closeBookingModal,
         openPhotographerAdmin,
         closePhotographerAdmin,
+        setVerifiedAdminPin,
+        updateCloudAdminPin,
         addPhotoToStory,
         removePhotoFromStory,
         setStoryCover,

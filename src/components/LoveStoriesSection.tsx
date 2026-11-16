@@ -86,24 +86,33 @@ export const LoveStoriesSection: React.FC = () => {
           and "BEKIJK GALLERIJ" at the bottom
         */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
-          {stories.map((story) => (
+          {stories.map((story) => {
+            const displayCover = story.coverImage || story.galleryImages[0] || '';
+            const showComingSoon = Boolean(story.isComingSoon) && story.galleryImages.length === 0;
+            const hasActivePhoto = Boolean(displayCover) && !story.isComingSoon;
+
+            return (
             <div
               key={story.id}
-              onClick={() => handleOpenGallery(story)}
+              onClick={() => {
+                if (!showComingSoon && displayCover) {
+                  handleOpenGallery(story);
+                }
+              }}
               className={`group relative aspect-square overflow-hidden bg-[#F0EAE1] ${
-                story.isComingSoon
+                showComingSoon || !displayCover
                   ? 'cursor-default'
                   : 'cursor-pointer'
               }`}
             >
-              {story.coverImage ? (
+              {displayCover ? (
                 <>
                   {/* Background Cover Photo */}
                   <img
-                    src={story.coverImage}
+                    src={displayCover}
                     alt={story.title}
                     className={`w-full h-full object-cover object-center transition-transform duration-700 ease-out ${
-                      story.isComingSoon
+                      !hasActivePhoto
                         ? 'opacity-65 scale-100'
                         : 'group-hover:scale-105'
                     }`}
@@ -113,7 +122,7 @@ export const LoveStoriesSection: React.FC = () => {
                   {/* Subtiel donker vignet om de witte letters kraakhelder leesbaar te houden */}
                   <div
                     className={`absolute inset-0 transition-colors duration-500 ${
-                      story.isComingSoon
+                      !hasActivePhoto
                         ? 'bg-white/40'
                         : 'bg-black/30 group-hover:bg-black/40'
                     }`}
@@ -135,7 +144,7 @@ export const LoveStoriesSection: React.FC = () => {
                         className="text-white/95 text-[10px] sm:text-[11px] uppercase tracking-[0.28em] font-light border-b border-transparent group-hover:border-white/70 transition-all pb-0.5"
                         style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                       >
-                        BEKIJK GALLERIJ
+                        {hasActivePhoto ? 'BEKIJK GALLERIJ' : "FOTO'S VOLGEN BINNENKORT"}
                       </span>
                     </div>
                   </div>
@@ -157,13 +166,14 @@ export const LoveStoriesSection: React.FC = () => {
                       className="text-[10px] uppercase tracking-[0.22em] text-[#9A897F] font-light block"
                       style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                     >
-                      Foto's volgen binnenkort
+                      Foto&apos;s volgen binnenkort
                     </span>
                   </div>
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
       </div>
@@ -231,14 +241,22 @@ export const LoveStoriesSection: React.FC = () => {
           )}
 
           {/* Gallery View */}
+          {(() => {
+            const safeIndex =
+              selectedStory.galleryImages.length > 0
+                ? activeImageIndex % selectedStory.galleryImages.length
+                : 0;
+            const currentImg =
+              selectedStory.galleryImages[safeIndex] || selectedStory.coverImage;
+            return (
           <div
             className="max-w-4xl max-h-[85vh] flex flex-col items-center select-none"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative overflow-hidden bg-black/40 shadow-2xl">
               <img
-                src={selectedStory.galleryImages[activeImageIndex]}
-                alt={`${selectedStory.title} - Foto ${activeImageIndex + 1}`}
+                src={currentImg}
+                alt={`${selectedStory.title} - Foto ${safeIndex + 1}`}
                 className="max-h-[80vh] w-auto object-contain"
                 referrerPolicy="no-referrer"
               />
@@ -248,10 +266,10 @@ export const LoveStoriesSection: React.FC = () => {
               <div className="flex items-center justify-center gap-2 mt-4 max-w-full overflow-x-auto px-2 py-1 no-scrollbar">
                 {selectedStory.galleryImages.map((imgUrl, idx) => (
                   <button
-                    key={idx}
+                    key={`${imgUrl}-${idx}`}
                     onClick={() => setActiveImageIndex(idx)}
                     className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-md overflow-hidden transition-all duration-200 flex-shrink-0 cursor-pointer ${
-                      idx === activeImageIndex
+                      idx === safeIndex
                         ? 'ring-2 ring-white scale-105 opacity-100 shadow-md'
                         : 'opacity-40 hover:opacity-80'
                     }`}
@@ -267,6 +285,8 @@ export const LoveStoriesSection: React.FC = () => {
               </div>
             )}
           </div>
+            );
+          })()}
 
         </div>
       )}

@@ -24,6 +24,15 @@ export interface LoveStoryItem {
   isComingSoon?: boolean;
 }
 
+export interface StoryOverride {
+  addedImages: string[];
+  removedImages: string[];
+  coverImage?: string;
+  isComingSoon?: boolean;
+}
+
+export type StoryOverridesMap = Record<string, StoryOverride>;
+
 export type SlotType = 'golden_hour_sunset' | 'morning_glow' | 'afternoon' | 'evening' | 'morning';
 
 export interface TimeSlot {

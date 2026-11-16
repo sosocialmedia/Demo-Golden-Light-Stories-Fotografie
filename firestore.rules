@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- HELPER PRIMITIVES ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'chinoukjacobi44@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isPinAuthorized(pinVal) {
+      return pinVal is string && pinVal.size() >= 4 && pinVal.size() <= 16 && (
+        exists(/databases/$(database)/documents/appConfig/adminPin)
+          ? get(/databases/$(database)/documents/appConfig/adminPin).data.pin == pinVal
+          : pinVal == '2026'
+      );
+    }
+
+    // --- VALIDATION BLUEPRINTS ---
+    function isValidStoryPhoto(data) {
+      return data.keys().hasAll(['id', 'storyId', 'imageUrl', 'isDeleted', 'adminPin', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['id', 'storyId', 'imageUrl', 'isDeleted', 'adminPin', 'createdAt', 'updatedAt']) &&
+             isValidId(data.id) &&
+             isValidId(data.storyId) &&
+             data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 850000 &&
+             data.isDeleted is bool &&
+             data.adminPin is string && data.adminPin.size() >= 4 && data.adminPin.size() <= 16 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidStoryConfig(data) {
+      return data.keys().hasAll(['storyId', 'coverImage', 'isComingSoon', 'removedImages', 'adminPin', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['storyId', 'coverImage', 'isComingSoon', 'removedImages', 'adminPin', 'createdAt', 'updatedAt']) &&
+             isValidId(data.storyId) &&
+             data.coverImage is string && data.coverImage.size() <= 850000 &&
+             data.isComingSoon is bool &&
+             data.removedImages is list && data.removedImages.size() <= 30 &&
+             (data.removedImages.size() == 0 || data.removedImages[0] is string) &&
+             data.adminPin is string && data.adminPin.size() >= 4 && data.adminPin.size() <= 16 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['id', 'packageId', 'packageName', 'date', 'clientName', 'clientEmail', 'clientPhone', 'status', 'createdAt']) &&
+             data.keys().hasOnly(['id', 'packageId', 'packageName', 'date', 'clientName', 'clientEmail', 'clientPhone', 'status', 'depositAmount', 'createdAt']) &&
+             isValidId(data.id) &&
+             data.packageId is string && data.packageId.size() >= 1 && data.packageId.size() <= 64 &&
+             data.packageName is string && data.packageName.size() >= 1 && data.packageName.size() <= 120 &&
+             data.date is string && data.date.size() >= 8 && data.date.size() <= 32 &&
+             data.clientName is string && data.clientName.size() >= 1 && data.clientName.size() <= 120 &&
+             data.clientEmail is string && data.clientEmail.size() >= 3 && data.clientEmail.size() <= 160 &&
+             data.clientPhone is string && data.clientPhone.size() >= 5 && data.clientPhone.size() <= 40 &&
+             data.status in ['bevestigd', 'in_afwachting', 'geannuleerd', 'voltooid'] &&
+             (!('depositAmount' in data) || data.depositAmount is number) &&
+             data.createdAt is timestamp;
+    }
+
+    // --- COLLECTIONS ---
+    match /admins/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+      allow list, write: if false;
+    }
+
+    match /appConfig/{configId} {
+      allow read: if false;
+      allow create: if configId == 'adminPin' &&
+                       incoming().keys().hasAll(['pin', 'currentPin', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['pin', 'currentPin', 'updatedAt']) &&
+                       incoming().pin is string && incoming().pin.size() >= 4 && incoming().pin.size() <= 16 &&
+                       incoming().currentPin == '2026' &&
+                       incoming().updatedAt == request.time;
+      allow update: if configId == 'adminPin' &&
+                       incoming().keys().hasAll(['pin', 'currentPin', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['pin', 'currentPin', 'updatedAt']) &&
+                       incoming().pin is string && incoming().pin.size() >= 4 && incoming().pin.size() <= 16 &&
+                       (isAdmin() || incoming().currentPin == existing().pin) &&
+                       incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /storyPhotos/{photoId} {
+      allow get: if isValidId(photoId);
+      allow list: if resource.data.isDeleted == false || isAdmin();
+      allow create: if isValidId(photoId) &&
+                       isValidStoryPhoto(incoming()) &&
+                       incoming().id == photoId &&
+                       incoming().createdAt == request.time &&
+                       incoming().updatedAt == request.time &&
+                       (isAdmin() || isPinAuthorized(incoming().adminPin));
+      allow update: if isValidId(photoId) &&
+                       isValidStoryPhoto(incoming()) &&
+                       incoming().id == existing().id &&
+                       incoming().storyId == existing().storyId &&
+                       incoming().imageUrl == existing().imageUrl &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt == request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['isDeleted', 'adminPin', 'updatedAt']) &&
+                       (isAdmin() || isPinAuthorized(incoming().adminPin));
+      allow delete: if isAdmin();
+    }
+
+    match /storyConfigs/{storyId} {
+      allow get: if isValidId(storyId);
+      allow list: if resource.data.storyId is string;
+      allow create: if isValidId(storyId) &&
+                       isValidStoryConfig(incoming()) &&
+                       incoming().storyId == storyId &&
+                       incoming().createdAt == request.time &&
+                       incoming().updatedAt == request.time &&
+                       (isAdmin() || isPinAuthorized(incoming().adminPin));
+      allow update: if isValidId(storyId) &&
+                       isValidStoryConfig(incoming()) &&
+                       incoming().storyId == existing().storyId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt == request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['coverImage', 'isComingSoon', 'removedImages', 'adminPin', 'updatedAt']) &&
+                       (isAdmin() || isPinAuthorized(incoming().adminPin));
+      allow delete: if isAdmin();
+    }
+
+    match /bookings/{bookingId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(bookingId) &&
+                       isValidBooking(incoming()) &&
+                       incoming().id == bookingId &&
+                       incoming().createdAt == request.time;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

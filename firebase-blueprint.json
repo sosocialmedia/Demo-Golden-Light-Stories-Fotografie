@@ -1,0 +1,218 @@
+{
+  "entities": {
+    "StoryPhoto": {
+      "title": "StoryPhoto",
+      "description": "A photography portfolio image added to one of the Golden Stories categories.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Document ID matching the Firestore document key.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "storyId": {
+          "type": "string",
+          "description": "Target Golden Story category ID (e.g. story-cakesmash, story-newborn).",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Web-optimized JPEG Data URL (<= 750KB) or HTTPS image URL.",
+          "minLength": 1,
+          "maxLength": 850000
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "Soft-delete flag so pins can remove photos without destructive delete rules."
+        },
+        "adminPin": {
+          "type": "string",
+          "description": "Authorized photographer PIN code verifying write access.",
+          "minLength": 4,
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the photo was added."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the photo record was last updated."
+        }
+      },
+      "required": ["id", "storyId", "imageUrl", "isDeleted", "adminPin", "createdAt", "updatedAt"]
+    },
+    "StoryConfig": {
+      "title": "StoryConfig",
+      "description": "Per-category cover photo, coming-soon toggle, and removed default image list.",
+      "type": "object",
+      "properties": {
+        "storyId": {
+          "type": "string",
+          "description": "Golden Story category ID.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "Cover photo Data URL, HTTPS URL, or default asset marker.",
+          "maxLength": 850000
+        },
+        "isComingSoon": {
+          "type": "boolean",
+          "description": "Whether this category shows as 'Foto's volgen binnenkort'."
+        },
+        "removedImages": {
+          "type": "array",
+          "description": "List of default photo URLs hidden by the photographer (max 30)."
+        },
+        "adminPin": {
+          "type": "string",
+          "description": "Authorized photographer PIN code verifying write access.",
+          "minLength": 4,
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["storyId", "coverImage", "isComingSoon", "removedImages", "adminPin", "createdAt", "updatedAt"]
+    },
+    "AdminPinConfig": {
+      "title": "AdminPinConfig",
+      "description": "Photographer management PIN configuration.",
+      "type": "object",
+      "properties": {
+        "pin": {
+          "type": "string",
+          "description": "4-digit PIN code.",
+          "minLength": 4,
+          "maxLength": 16
+        },
+        "currentPin": {
+          "type": "string",
+          "description": "Previous PIN proving authorization when updating.",
+          "minLength": 4,
+          "maxLength": 16
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["pin", "currentPin", "updatedAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Client session booking record containing PII restricted to admins.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "packageId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "packageName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "date": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 32
+        },
+        "clientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "clientEmail": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "clientPhone": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 40
+        },
+        "status": {
+          "type": "string",
+          "enum": ["bevestigd", "in_afwachting", "geannuleerd", "voltooid"]
+        },
+        "depositAmount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "packageId", "packageName", "date", "clientName", "clientEmail", "clientPhone", "status", "createdAt"]
+    },
+    "ConnectionCheck": {
+      "title": "ConnectionCheck",
+      "description": "Connectivity probe document.",
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/storyPhotos/{photoId}": {
+      "schema": {
+        "$ref": "#/entities/StoryPhoto"
+      },
+      "description": "Live portfolio story photos added by photographer across all categories."
+    },
+    "/storyConfigs/{storyId}": {
+      "schema": {
+        "$ref": "#/entities/StoryConfig"
+      },
+      "description": "Cover photo, coming soon status, and hidden default image overrides per story category."
+    },
+    "/appConfig/{configId}": {
+      "schema": {
+        "$ref": "#/entities/AdminPinConfig"
+      },
+      "description": "Protected admin PIN configuration document."
+    },
+    "/bookings/{bookingId}": {
+      "schema": {
+        "$ref": "#/entities/Booking"
+      },
+      "description": "Session bookings with PII restricted to admins."
+    },
+    "/test/{docId}": {
+      "schema": {
+        "$ref": "#/entities/ConnectionCheck"
+      },
+      "description": "Read-only connection verification path."
+    }
+  }
+}

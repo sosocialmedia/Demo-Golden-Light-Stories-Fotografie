@@ -32,6 +32,7 @@ export const PhotographerAdmin: React.FC = () => {
     resetAllData,
     defaultDepositAmount,
     updateDefaultDepositAmount,
+    updateCloudAdminPin,
   } = useBooking();
 
   const [currentTab, setCurrentTab] = useState<AdminTab>(
@@ -58,72 +59,107 @@ export const PhotographerAdmin: React.FC = () => {
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [newPhotoIsCover, setNewPhotoIsCover] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSavingPhotoAction, setIsSavingPhotoAction] = useState(false);
   const [photoFeedbackMsg, setPhotoFeedbackMsg] = useState('');
+  const [photoErrorMsg, setPhotoErrorMsg] = useState('');
+  const [confirmDeleteUrl, setConfirmDeleteUrl] = useState<string | null>(null);
+  const [confirmResetStories, setConfirmResetStories] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showPhotoSuccess = (msg: string) => {
+    setPhotoErrorMsg('');
+    setPhotoFeedbackMsg(msg);
+    setTimeout(() => setPhotoFeedbackMsg(''), 4000);
+  };
+
+  const formatFriendlyError = (err: any, fallback: string) => {
+    const msg = String(err?.message || '');
+    if (msg.includes('Quota exceeded')) {
+      return 'Dagelijkse opslaglimiet van Firebase is bereikt. Morgen wordt deze gereset.';
+    }
+    if (msg.includes('Missing or insufficient permissions')) {
+      return 'Geen schrijfrechten met deze toegangscode. Controleer je pincode (standaard 2026).';
+    }
+    return fallback;
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPhotoErrorMsg('');
+    setPhotoFeedbackMsg('');
     try {
       setIsUploadingPhoto(true);
       const compressedDataUrl = await compressImageFile(file);
 
-      // Upload to server endpoint so it gets a persistent URL accessible on all devices
-      let photoUrlToUse = compressedDataUrl;
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: compressedDataUrl,
-            filename: file.name,
-          }),
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.url) {
-            photoUrlToUse = json.url;
-          }
-        }
-      } catch (uploadErr) {
-        console.warn('Fallback to direct dataUrl:', uploadErr);
-      }
+      const currentStory = stories.find(s => s.id === selectedStoryIdForEdit);
+      const shouldSetAsCover = newPhotoIsCover || !currentStory?.coverImage;
+      await addPhotoToStory(selectedStoryIdForEdit, compressedDataUrl, shouldSetAsCover);
 
-      addPhotoToStory(selectedStoryIdForEdit, photoUrlToUse, newPhotoIsCover);
-      setPhotoFeedbackMsg('Foto succesvol geüpload en live opgeslagen!');
+      showPhotoSuccess('Foto opgeslagen in de cloud en direct zichtbaar voor iedereen!');
       setNewPhotoIsCover(false);
-      setTimeout(() => setPhotoFeedbackMsg(''), 3000);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err) {
-      console.error(err);
-      alert('Kon foto niet uploaden. Probeer een andere afbeelding of URL.');
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setPhotoErrorMsg(
+        formatFriendlyError(
+          err,
+          'Kon foto niet opslaan in de database. Controleer je internetverbinding en probeer opnieuw.'
+        )
+      );
     } finally {
       setIsUploadingPhoto(false);
     }
   };
 
-  const handleAddUrlPhoto = (e: React.FormEvent) => {
+  const handleAddUrlPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPhotoUrl.trim()) return;
-    addPhotoToStory(selectedStoryIdForEdit, newPhotoUrl.trim(), newPhotoIsCover);
-    setNewPhotoUrl('');
-    setNewPhotoIsCover(false);
-    setPhotoFeedbackMsg('Foto via link toegevoegd!');
-    setTimeout(() => setPhotoFeedbackMsg(''), 3000);
-  };
-
-  const handleDeletePhoto = (index: number) => {
-    if (confirm('Weet je zeker dat je deze foto wilt verwijderen uit de galerij?')) {
-      removePhotoFromStory(selectedStoryIdForEdit, index);
-      setPhotoFeedbackMsg('Foto verwijderd');
-      setTimeout(() => setPhotoFeedbackMsg(''), 2500);
+    setPhotoErrorMsg('');
+    setPhotoFeedbackMsg('');
+    try {
+      setIsSavingPhotoAction(true);
+      const currentStory = stories.find(s => s.id === selectedStoryIdForEdit);
+      const shouldSetAsCover = newPhotoIsCover || !currentStory?.coverImage;
+      await addPhotoToStory(selectedStoryIdForEdit, newPhotoUrl.trim(), shouldSetAsCover);
+      setNewPhotoUrl('');
+      setNewPhotoIsCover(false);
+      showPhotoSuccess('Foto via link opgeslagen en direct zichtbaar!');
+    } catch (err: any) {
+      console.error('Add URL error:', err);
+      setPhotoErrorMsg(err?.message || 'Kon de foto niet opslaan op de server.');
+    } finally {
+      setIsSavingPhotoAction(false);
     }
   };
 
-  const handleSetCoverPhoto = (imgUrl: string) => {
-    setStoryCover(selectedStoryIdForEdit, imgUrl);
-    setPhotoFeedbackMsg('Omslagfoto bijgewerkt!');
-    setTimeout(() => setPhotoFeedbackMsg(''), 2500);
+  const handleDeletePhoto = async (imgUrl: string) => {
+    setPhotoErrorMsg('');
+    try {
+      setIsSavingPhotoAction(true);
+      await removePhotoFromStory(selectedStoryIdForEdit, imgUrl);
+      setConfirmDeleteUrl(null);
+      showPhotoSuccess('Foto verwijderd van de website.');
+    } catch (err: any) {
+      console.error('Delete photo error:', err);
+      setPhotoErrorMsg(err?.message || 'Kon de foto niet verwijderen.');
+    } finally {
+      setIsSavingPhotoAction(false);
+    }
+  };
+
+  const handleSetCoverPhoto = async (imgUrl: string) => {
+    setPhotoErrorMsg('');
+    try {
+      setIsSavingPhotoAction(true);
+      await setStoryCover(selectedStoryIdForEdit, imgUrl);
+      showPhotoSuccess('Omslagfoto bijgewerkt en live opgeslagen!');
+    } catch (err: any) {
+      console.error('Set cover error:', err);
+      setPhotoErrorMsg(err?.message || 'Kon de omslagfoto niet opslaan.');
+    } finally {
+      setIsSavingPhotoAction(false);
+    }
   };
 
   // New date input
@@ -143,13 +179,19 @@ export const PhotographerAdmin: React.FC = () => {
     );
   });
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
-  const [pinCode, setPinCode] = useState(() => localStorage.getItem('golden_light_admin_pin') || '2026');
+  const [pinCode, setPinCode] = useState(() => (localStorage.getItem('golden_light_admin_pin') || '').trim() || '2026');
   const [pinSaveSuccessMsg, setPinSaveSuccessMsg] = useState('');
 
-  const handleSavePinCode = (e: React.FormEvent) => {
+  const handleSavePinCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (pinCode.length === 4) {
+      const previousPin = (localStorage.getItem('golden_light_admin_pin') || '').trim() || '2026';
       localStorage.setItem('golden_light_admin_pin', pinCode);
+      try {
+        await updateCloudAdminPin(pinCode, previousPin);
+      } catch (err) {
+        console.error('Failed to sync PIN to Firebase:', err);
+      }
       setPinSaveSuccessMsg('Nieuwe toegangscode opgeslagen!');
       setTimeout(() => setPinSaveSuccessMsg(''), 3000);
     }
@@ -919,17 +961,34 @@ export const PhotographerAdmin: React.FC = () => {
                     Foto&apos;s Beheren &amp; Toevoegen
                   </h4>
                   <p className="text-xs text-[#5A4D45] mt-1 leading-relaxed">
-                    Kies een categorie om direct nieuwe foto&apos;s te uploaden vanaf je computer of telefoon, of foto&apos;s te beheren.
+                    Kies een categorie om direct nieuwe foto&apos;s te uploaden vanaf je computer of telefoon. Geüploade foto&apos;s worden direct live op de website opgeslagen voor alle bezoekers.
                   </p>
                 </div>
 
                 {photoFeedbackMsg && (
-                  <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center space-x-1.5 animate-in fade-in">
+                  <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center space-x-1.5 animate-in fade-in shrink-0">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                     <span>{photoFeedbackMsg}</span>
                   </div>
                 )}
               </div>
+
+              {photoErrorMsg && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center justify-between gap-3">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{photoErrorMsg}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoErrorMsg('')}
+                    className="text-rose-500 hover:text-rose-800 p-1"
+                    aria-label="Sluit foutmelding"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {/* Categorie selector pills */}
               <div className="flex flex-wrap gap-2 pt-1">
@@ -941,6 +1000,7 @@ export const PhotographerAdmin: React.FC = () => {
                       onClick={() => {
                         setSelectedStoryIdForEdit(story.id);
                         setActiveStoryCategory(story.id);
+                        setConfirmDeleteUrl(null);
                       }}
                       className={`px-4 py-2 rounded-full text-xs font-medium transition-all flex items-center space-x-2 cursor-pointer ${
                         isActive
@@ -988,8 +1048,21 @@ export const PhotographerAdmin: React.FC = () => {
                         <label className="text-xs text-[#5A4D45] flex items-center space-x-2 cursor-pointer select-none">
                           <input
                             type="checkbox"
-                            checked={currentStory.isComingSoon}
-                            onChange={(e) => toggleStoryComingSoon(currentStory.id, e.target.checked)}
+                            checked={Boolean(currentStory.isComingSoon)}
+                            disabled={isSavingPhotoAction}
+                            onChange={async (e) => {
+                              try {
+                                setPhotoErrorMsg('');
+                                await toggleStoryComingSoon(currentStory.id, e.target.checked);
+                                showPhotoSuccess(
+                                  e.target.checked
+                                    ? 'Categorie op "binnenkort" gezet.'
+                                    : 'Categorie live gezet op de website!'
+                                );
+                              } catch (err: any) {
+                                setPhotoErrorMsg(err?.message || 'Kon status niet opslaan.');
+                              }
+                            }}
                             className="rounded border-[#D5C7B8] text-[#A67C46] focus:ring-[#A67C46]"
                           />
                           <span>Zet op &quot;Foto&apos;s volgen binnenkort&quot;</span>
@@ -1017,7 +1090,7 @@ export const PhotographerAdmin: React.FC = () => {
                       <label className="flex items-center space-x-2 text-xs text-[#5A4D45] cursor-pointer pt-1">
                         <input
                           type="checkbox"
-                          checked={newPhotoIsCover}
+                          checked={newPhotoIsCover || currentStory.galleryImages.length === 0}
                           onChange={(e) => setNewPhotoIsCover(e.target.checked)}
                           className="rounded border-[#D5C7B8] text-[#A67C46] focus:ring-[#A67C46]"
                         />
@@ -1045,18 +1118,18 @@ export const PhotographerAdmin: React.FC = () => {
                               onChange={handleFileUpload}
                               className="hidden"
                               id="photo-upload-input"
-                              disabled={isUploadingPhoto}
+                              disabled={isUploadingPhoto || isSavingPhotoAction}
                             />
                             <label
                               htmlFor="photo-upload-input"
                               className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 cursor-pointer transition-all ${
-                                isUploadingPhoto
+                                isUploadingPhoto || isSavingPhotoAction
                                   ? 'bg-stone-200 text-stone-500 cursor-wait'
                                   : 'bg-[#2A211D] hover:bg-[#3D312A] text-white'
                               }`}
                             >
                               <Upload className="w-3.5 h-3.5 text-[#E6C9A2]" />
-                              <span>{isUploadingPhoto ? 'Foto verwerken...' : 'Kies foto van telefoon / computer'}</span>
+                              <span>{isUploadingPhoto ? 'Foto uploaden & opslaan...' : 'Kies foto van telefoon / computer'}</span>
                             </label>
                           </div>
                         </div>
@@ -1082,7 +1155,7 @@ export const PhotographerAdmin: React.FC = () => {
                             />
                             <button
                               type="submit"
-                              disabled={!newPhotoUrl.trim()}
+                              disabled={!newPhotoUrl.trim() || isSavingPhotoAction || isUploadingPhoto}
                               className="bg-[#2A211D] hover:bg-[#3D312A] disabled:opacity-40 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer"
                             >
                               Toevoegen
@@ -1111,9 +1184,10 @@ export const PhotographerAdmin: React.FC = () => {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                           {currentStory.galleryImages.map((imgUrl, idx) => {
                             const isCover = currentStory.coverImage === imgUrl;
+                            const isConfirmingDelete = confirmDeleteUrl === imgUrl;
                             return (
                               <div
-                                key={idx}
+                                key={`${imgUrl}-${idx}`}
                                 className="group relative aspect-square rounded-2xl overflow-hidden bg-stone-100 border border-[#E8DFD5] shadow-xs"
                               >
                                 <img
@@ -1136,20 +1210,43 @@ export const PhotographerAdmin: React.FC = () => {
                                   </div>
                                 )}
 
-                                {/* Acties Overlay */}
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                                {/* Acties Overlay (altijd bereikbaar op mobiel, hover op desktop) */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/25 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2.5 sm:p-3">
                                   <div className="flex justify-end">
-                                    <button
-                                      onClick={() => handleDeletePhoto(idx)}
-                                      className="p-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-xs"
-                                      title="Foto verwijderen"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    {isConfirmingDelete ? (
+                                      <div className="flex items-center space-x-1 bg-white/95 rounded-full px-2 py-1 shadow-sm">
+                                        <button
+                                          type="button"
+                                          disabled={isSavingPhotoAction}
+                                          onClick={() => handleDeletePhoto(imgUrl)}
+                                          className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 px-1.5 cursor-pointer"
+                                        >
+                                          Verwijder
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setConfirmDeleteUrl(null)}
+                                          className="text-[10px] text-stone-500 hover:text-stone-800 px-1 cursor-pointer"
+                                        >
+                                          Annuleer
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setConfirmDeleteUrl(imgUrl)}
+                                        className="p-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shadow-xs"
+                                        title="Foto verwijderen"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                   </div>
 
                                   {!isCover && (
                                     <button
+                                      type="button"
+                                      disabled={isSavingPhotoAction}
                                       onClick={() => handleSetCoverPhoto(imgUrl)}
                                       className="w-full py-1.5 rounded-lg bg-white/90 hover:bg-white text-[#2A211D] text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center space-x-1 shadow-xs"
                                     >
@@ -1166,21 +1263,48 @@ export const PhotographerAdmin: React.FC = () => {
                     </div>
 
                     {/* Reset optie */}
-                    <div className="pt-4 border-t border-[#E8DFD5] flex items-center justify-between text-xs text-[#705E53]">
+                    <div className="pt-4 border-t border-[#E8DFD5] flex flex-wrap items-center justify-between gap-3 text-xs text-[#705E53]">
                       <span>Standaard fotocollectie herstellen?</span>
-                      <button
-                        onClick={() => {
-                          if (confirm('Weet je zeker dat je alle foto\'s van Golden Stories wilt terugzetten naar de originele standaardfoto\'s?')) {
-                            resetStoriesToDefault();
-                            setPhotoFeedbackMsg('Standaard foto\'s hersteld');
-                            setTimeout(() => setPhotoFeedbackMsg(''), 2500);
-                          }
-                        }}
-                        className="flex items-center space-x-1 text-stone-500 hover:text-[#2A211D] cursor-pointer"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Originele foto&apos;s herstellen</span>
-                      </button>
+                      {confirmResetStories ? (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-rose-700 font-medium">Alle zelf toegevoegde foto&apos;s resetten?</span>
+                          <button
+                            type="button"
+                            disabled={isSavingPhotoAction}
+                            onClick={async () => {
+                              try {
+                                setIsSavingPhotoAction(true);
+                                await resetStoriesToDefault();
+                                setConfirmResetStories(false);
+                                showPhotoSuccess('Standaard foto\'s hersteld.');
+                              } catch (err: any) {
+                                setPhotoErrorMsg(err?.message || 'Kon niet herstellen.');
+                              } finally {
+                                setIsSavingPhotoAction(false);
+                              }
+                            }}
+                            className="px-3 py-1 rounded-full bg-rose-600 text-white font-semibold cursor-pointer hover:bg-rose-700"
+                          >
+                            Ja, herstel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmResetStories(false)}
+                            className="px-2.5 py-1 rounded-full bg-[#EFE7DC] text-[#5A4D45] cursor-pointer"
+                          >
+                            Annuleer
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmResetStories(true)}
+                          className="flex items-center space-x-1 text-stone-500 hover:text-[#2A211D] cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Originele foto&apos;s herstellen</span>
+                        </button>
+                      )}
                     </div>
 
                   </div>

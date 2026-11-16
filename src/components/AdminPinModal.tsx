@@ -9,6 +9,7 @@ interface AdminPinModalProps {
 }
 
 export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { setVerifiedAdminPin } = useBooking();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -18,7 +19,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose, o
 
   // Default PIN is 2026, or whatever the photographer saved
   const getStoredPin = () => {
-    return localStorage.getItem('golden_light_admin_pin') || '2026';
+    return (localStorage.getItem('golden_light_admin_pin') || '').trim() || '2026';
   };
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose, o
   const verifyPin = (candidatePin: string) => {
     const correctPin = getStoredPin();
     if (candidatePin === correctPin) {
+      setVerifiedAdminPin(candidatePin);
       setIsSuccess(true);
       setError(false);
       setErrorMessage('');
