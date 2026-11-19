@@ -26,7 +26,7 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Gecentreerde redactionele tekst precies zoals in het voorbeeld */}
-      <div className="relative z-10 text-center px-4 max-w-2xl mx-auto flex flex-col items-center select-none animate-in fade-in duration-700">
+      <div className="relative z-10 text-center px-4 max-w-2xl mx-auto flex flex-col items-center select-none animate-in fade-in duration-700 -translate-y-32 sm:-translate-y-20 md:translate-y-0">
         <h1
           className="text-white font-light text-sm sm:text-lg md:text-xl tracking-[0.28em] sm:tracking-[0.32em] uppercase leading-relaxed text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
           style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
@@ -38,7 +38,7 @@ export const HeroSection: React.FC = () => {
         <button
           onClick={scrollToStory}
           aria-label="Scroll naar beneden voor het verhaal en portfolio"
-          className="mt-6 sm:mt-8 text-white/90 hover:text-white transition-all transform hover:translate-y-1 focus:outline-none p-2 animate-bounce-subtle"
+          className="mt-4 sm:mt-8 text-white/90 hover:text-white transition-all transform hover:translate-y-1 focus:outline-none p-2 animate-bounce-subtle"
         >
           <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6 stroke-[1.25]" />
         </button>
