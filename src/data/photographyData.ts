@@ -246,7 +246,7 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
     id: 'story-pregnancy',
     title: 'PREGNANCY',
     country: 'ZWANGERSCHAP & VERWACHTING',
-    coverImage: maternityDunesImg,
+    coverImage: pregnantDuinenJurkImg,
     galleryImages: [
       maternityDunesImg,
       maternityStudioImg,
