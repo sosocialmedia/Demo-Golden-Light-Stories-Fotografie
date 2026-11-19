@@ -153,11 +153,7 @@ function mergeStoriesWithCloud(
     }
 
     const hasMedia = galleryImages.length > 0 || Boolean(coverImage);
-    const isComingSoon = hasMedia
-      ? typeof cfg?.isComingSoon === 'boolean'
-        ? cfg.isComingSoon
-        : false
-      : true;
+    const isComingSoon = !hasMedia;
 
     return {
       ...base,
