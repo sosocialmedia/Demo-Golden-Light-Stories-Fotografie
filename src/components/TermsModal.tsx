@@ -3,7 +3,7 @@ import { X, FileText, Download, ShieldCheck, Printer, CheckCircle2, ChevronRight
 import { useBooking } from '../context/BookingContext';
 
 export const TermsModal: React.FC = () => {
-  const { isTermsOpen, closeTerms, openBrochure, openBookingModal } = useBooking();
+  const { isTermsOpen, closeTerms, openBrochure } = useBooking();
 
   if (!isTermsOpen) return null;
 

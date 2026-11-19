@@ -257,7 +257,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isPhotographerAdminOpen, setIsPhotographerAdminOpen] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('beschikbaarheid');
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('fotos');
 
   // Brochure & Terms state
   const [isBrochureOpen, setIsBrochureOpen] = useState(false);
@@ -615,16 +615,11 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setVerifiedAdminPin(newPin);
   };
 
-  const openBookingModal = (packageId?: string, initialDate?: string, initialSlot?: TimeSlot) => {
-    if (packageId) {
-      const pkg = PACKAGES.find(p => p.id === packageId) || PACKAGES[0];
-      setSelectedPackage(pkg);
-    } else {
-      setSelectedPackage(PACKAGES[0]);
+  const openBookingModal = (_packageId?: string, _initialDate?: string, _initialSlot?: TimeSlot) => {
+    const agendaSection = document.querySelector('#agenda');
+    if (agendaSection) {
+      agendaSection.scrollIntoView({ behavior: 'smooth' });
     }
-    setSelectedDate(initialDate || null);
-    setSelectedSlot(initialSlot || null);
-    setIsBookingModalOpen(true);
   };
 
   const closeBookingModal = () => {
@@ -634,7 +629,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const openPhotographerAdmin = (
-    tab: AdminTab = 'beschikbaarheid',
+    tab: AdminTab = 'fotos',
     storyCategory?: string
   ) => {
     setActiveAdminTab(tab);

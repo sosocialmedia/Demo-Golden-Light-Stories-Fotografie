@@ -162,12 +162,12 @@ export const PackagesSection: React.FC = () => {
                     }`}
                     style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                   >
-                    <span>Kies Dit Pakket</span>
+                    <span>Boeken</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#DFCCA9]" />
                   </button>
 
                   <p className="text-[10px] text-center text-[#8C7B71] font-light">
-                    Direct datum reserveren met € 50,- aanbetaling
+                    Plan direct jouw shoot (€ 50,- aanbetaling)
                   </p>
                 </div>
 
@@ -186,7 +186,7 @@ export const PackagesSection: React.FC = () => {
               href="#agenda"
               className="text-[#1A1412] hover:text-[#A67C46] underline underline-offset-4 decoration-[#DFCCA9] transition-colors"
             >
-              Bekijk Beschikbare Data in de Agenda &darr;
+              Afspraak maken &darr;
             </a>
             <span className="text-stone-300">•</span>
             <a

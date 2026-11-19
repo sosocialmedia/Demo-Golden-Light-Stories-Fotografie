@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useBooking } from '../context/BookingContext';
-import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import photographerPortrait from '../assets/images/client_closet_dunes_walk_1790858799287.jpg';
 
 export const AboutSection: React.FC = () => {
-  const { openBookingModal } = useBooking();
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (

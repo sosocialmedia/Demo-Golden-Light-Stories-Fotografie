@@ -35,14 +35,10 @@ export const PhotographerAdmin: React.FC = () => {
     updateCloudAdminPin,
   } = useBooking();
 
-  const [currentTab, setCurrentTab] = useState<AdminTab>(
-    activeAdminTab || 'beschikbaarheid'
-  );
+  const [currentTab, setCurrentTab] = useState<AdminTab>('fotos');
 
   useEffect(() => {
-    if (activeAdminTab) {
-      setCurrentTab(activeAdminTab);
-    }
+    setCurrentTab('fotos');
   }, [activeAdminTab]);
 
   // Photo management state
@@ -247,87 +243,25 @@ export const PhotographerAdmin: React.FC = () => {
             <div>
               <div className="flex items-center space-x-2">
                 <h3 className="font-serif-editorial text-2xl text-[#2A211D] font-medium leading-none">
-                  Fotograaf Agenda Beheer
+                  Foto&apos;s &amp; Portfolio Beheer
                 </h3>
                 <span className="text-[10px] bg-[#A67C46] text-white px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                   Eigenaar Portaal
                 </span>
               </div>
               <p className="text-xs text-[#705E53] mt-1">
-                Beheer jouw openstaande data, bekijk klantboekingen en synchroniseer met je eigen agenda.
+                Upload en beheer foto&apos;s voor jouw Golden Stories categorieën.
               </p>
             </div>
           </div>
 
           <button
             onClick={closePhotographerAdmin}
-            className="p-2 rounded-full hover:bg-[#E0D6CB] text-[#705E53] transition-colors"
+            className="p-2 rounded-full hover:bg-[#E0D6CB] text-[#705E53] transition-colors cursor-pointer"
             aria-label="Sluiten"
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Admin Navigation Tabs & Quick Metrics */}
-        <div className="px-6 py-3 bg-[#FAF7F2] border-b border-[#E8DFD5] flex flex-wrap items-center justify-between gap-4">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentTab('beschikbaarheid')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                currentTab === 'beschikbaarheid'
-                  ? 'bg-[#2A211D] text-white shadow-xs'
-                  : 'bg-[#F2ECE1] text-[#5A4D45] hover:bg-[#E8DFD5]'
-              }`}
-            >
-              Beschikbare Data & Tijdsloten ({availableDays.length})
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('boekingen')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all relative ${
-                currentTab === 'boekingen'
-                  ? 'bg-[#2A211D] text-white shadow-xs'
-                  : 'bg-[#F2ECE1] text-[#5A4D45] hover:bg-[#E8DFD5]'
-              }`}
-            >
-              <span>Klantboekingen</span>
-              {bookings.length > 0 && (
-                <span className="ml-1.5 bg-[#A67C46] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                  {bookings.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('synchronisatie')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                currentTab === 'synchronisatie'
-                  ? 'bg-[#2A211D] text-white shadow-xs'
-                  : 'bg-[#F2ECE1] text-[#5A4D45] hover:bg-[#E8DFD5]'
-              }`}
-            >
-              Agenda Koppelen & Export
-            </button>
-
-            <button
-              onClick={() => setCurrentTab('fotos')}
-              className={`px-4 py-2 rounded-full text-xs font-semibold tracking-wide transition-all flex items-center space-x-1.5 ${
-                currentTab === 'fotos'
-                  ? 'bg-[#2A211D] text-white shadow-xs'
-                  : 'bg-[#F2ECE1] text-[#5A4D45] hover:bg-[#E8DFD5]'
-              }`}
-            >
-              <Camera className="w-3.5 h-3.5 text-[#DFCCA9]" />
-              <span>Foto&apos;s &amp; Portfolio</span>
-            </button>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="flex items-center space-x-3 text-xs text-[#705E53]">
-            <span>Vrij: <strong className="text-emerald-700 font-semibold">{freeSlots}</strong></span>
-            <span>•</span>
-            <span>Gereserveerd: <strong className="text-[#A67C46] font-semibold">{bookedSlots}</strong></span>
-          </div>
         </div>
 
         {/* Tab Content */}

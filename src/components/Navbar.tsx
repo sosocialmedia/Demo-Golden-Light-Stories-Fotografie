@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Instagram, Facebook, Calendar, Settings, MapPin, Mail, Phone, ArrowRight, BookOpen, FileText } from 'lucide-react';
+import { X, Instagram, Facebook, Calendar, MapPin, ArrowRight, BookOpen, FileText } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { useBooking } from '../context/BookingContext';
 import { PHOTOGRAPHER_INFO } from '../data/photographyData';
 
 export const Navbar: React.FC = () => {
-  const { openBookingModal, openPhotographerAdmin, bookings, openBrochure, openTerms } = useBooking();
+  const { openBrochure, openTerms } = useBooking();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -34,7 +34,7 @@ export const Navbar: React.FC = () => {
     { name: 'Pakketten & Aanbod', href: '#pakketten', subtitle: 'Investering & mogelijkheden' },
     { name: 'Portfolio', href: '#portfolio', subtitle: 'Discover my work' },
     { name: 'Golden Stories', href: '#golden-stories', subtitle: 'Thema shoots & verhalen' },
-    { name: 'Agenda', href: '#agenda', subtitle: 'Beschikbare data & tijden' },
+    { name: 'Afspraak maken', href: '#agenda', subtitle: 'Plan direct jouw fotoshoot' },
     { name: 'Client Closet', href: '#client-closet', subtitle: 'Luxe kleding voor de shoot' },
     { name: 'Over Mij', href: '#over-mij', subtitle: 'Het gezicht achter de camera' },
     { name: 'Contact', href: '#contact', subtitle: 'Stel een vraag of plan direct' },
@@ -170,34 +170,15 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <div className="flex items-center justify-center pt-2">
                 <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    openBookingModal();
-                  }}
-                  className="flex items-center justify-center space-x-2 bg-[#241C18] hover:bg-[#382B24] text-[#FAF7F2] px-8 py-3.5 rounded-full text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-sm w-full sm:w-auto"
+                  onClick={() => handleLinkClick('#agenda')}
+                  className="flex items-center justify-center space-x-2 bg-[#241C18] hover:bg-[#382B24] text-[#FAF7F2] px-8 py-3.5 rounded-full text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-sm w-full sm:w-auto cursor-pointer"
                   style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
                 >
                   <Calendar className="w-3.5 h-3.5 text-[#DFCCA9]" />
-                  <span>Direct Shoot Plannen</span>
+                  <span>Boeken</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    openPhotographerAdmin('beschikbaarheid');
-                  }}
-                  className="flex items-center justify-center space-x-2 border border-[#D5C7B8] text-[#5A4D45] hover:bg-[#EFE7DC] hover:text-[#241C18] px-6 py-3 rounded-full text-xs tracking-wider transition-all w-full sm:w-auto"
-                >
-                  <Settings className="w-3.5 h-3.5 text-[#A67C46]" />
-                  <span>Fotograaf Agenda Beheer</span>
-                  {bookings.length > 0 && (
-                    <span className="bg-[#A67C46] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                      {bookings.length}
-                    </span>
-                  )}
                 </button>
               </div>
             </div>

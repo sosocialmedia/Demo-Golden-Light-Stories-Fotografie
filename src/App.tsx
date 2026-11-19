@@ -11,7 +11,6 @@ import { ClientClosetSection } from './components/ClientClosetSection';
 import { AboutSection } from './components/AboutSection';
 import { ReviewsSection } from './components/ReviewsSection';
 import { Footer } from './components/Footer';
-import { BookingModal } from './components/BookingModal';
 import { PhotographerAdmin } from './components/PhotographerAdmin';
 import { BrochureModal } from './components/BrochureModal';
 import { TermsModal } from './components/TermsModal';
@@ -48,7 +47,7 @@ export default function App() {
           {/* 4. Golden Stories: 3x3 Grid met Thema Shoots uit de brochure & "BEKIJK GALLERIJ" */}
           <LoveStoriesSection />
 
-          {/* 5. Agenda: Overzichtelijk, rustig, zonder prijzen en met directe koppeling voor de fotograaf */}
+          {/* 5. Afspraak maken via Calendly */}
           <CalendarSection />
 
           {/* 6. Client Closet: Luxe jurken & outfits om gratis te lenen */}
@@ -64,10 +63,7 @@ export default function App() {
         {/* Footer met logo & Instagram/Facebook links */}
         <Footer />
 
-        {/* Reserveringsmodal zonder prijzen (datum & gegevens) */}
-        <BookingModal />
-
-        {/* Fotograaf Agenda Beheer & Koppelen paneel (Google Calendar & iCal) */}
+        {/* Fotograaf Foto Beheer paneel (beveiligd met pincode) */}
         <PhotographerAdmin />
 
         {/* Brochure & Investeringsgids Modal */}

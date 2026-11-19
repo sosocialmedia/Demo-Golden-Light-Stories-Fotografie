@@ -131,7 +131,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose, o
           className="text-xs text-[#7A6B62] font-light mb-6"
           style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
         >
-          Voer je 4-cijferige toegangscode in om je agenda en tijdsloten te beheren.
+          Voer je 4-cijferige toegangscode in om je foto&apos;s en portfolio te beheren.
         </p>
 
         {/* Verborgen native input voor toetsenbord/mobiel keyboard support */}

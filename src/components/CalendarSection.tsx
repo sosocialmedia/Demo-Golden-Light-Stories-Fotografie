@@ -123,7 +123,7 @@ export const CalendarSection: React.FC = () => {
               style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
             >
               <Calendar className="w-4 h-4 text-[#DFCCA9]" />
-              <span>Afspraak maken via Calendly</span>
+              <span>Boeken</span>
               <ArrowUpRight className="w-4 h-4 text-[#DFCCA9]" />
             </a>
           </div>

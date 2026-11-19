@@ -286,10 +286,10 @@ export const ClientClosetSection: React.FC = () => {
           <div className="pt-3 flex flex-wrap items-center gap-4">
             <button
               onClick={() => openBookingModal()}
-              className="inline-flex items-center space-x-2 bg-[#1A1412] hover:bg-[#332720] text-white px-7 py-3.5 rounded-full text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-xs"
+              className="inline-flex items-center space-x-2 bg-[#1A1412] hover:bg-[#332720] text-white px-7 py-3.5 rounded-full text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-xs cursor-pointer"
               style={{ fontFamily: "'Montserrat', system-ui, sans-serif" }}
             >
-              <span>Reserveer Jouw Datum</span>
+              <span>Boeken</span>
               <ArrowRight className="w-3.5 h-3.5 text-[#DFCCA9]" />
             </button>
 
@@ -446,7 +446,7 @@ export const ClientClosetSection: React.FC = () => {
                 }}
                 className="inline-flex items-center space-x-2 bg-[#A67C46] hover:bg-[#8e6939] text-white px-5 py-2 rounded-full text-xs uppercase tracking-wider font-medium shrink-0 transition-all cursor-pointer"
               >
-                <span>Plan Jouw Shoot</span>
+                <span>Boeken</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
