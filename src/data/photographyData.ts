@@ -203,7 +203,7 @@ export const GOLDEN_STORIES: LoveStoryItem[] = [
     id: 'story-newborn',
     title: 'NEWBORN',
     country: 'PUUR & INTIEM',
-    coverImage: newbornSlapendImg,
+    coverImage: '/assets/aistudio/WhatsApp_Image_2026-11-19_at_17.34.08__1__8164cb56.jpeg',
     galleryImages: [
       newbornSlapendImg,
       newbornImg,
