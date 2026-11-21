@@ -250,20 +250,20 @@ export const LoveStoriesSection: React.FC = () => {
               selectedStory.galleryImages[safeIndex] || selectedStory.coverImage;
             return (
           <div
-            className="max-w-4xl max-h-[85vh] flex flex-col items-center select-none"
+            className="w-full max-w-4xl max-h-[88vh] flex flex-col items-center justify-center select-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative overflow-hidden bg-black/40 shadow-2xl">
+            <div className="relative flex items-center justify-center w-full">
               <img
                 src={currentImg}
                 alt={`${selectedStory.title} - Foto ${safeIndex + 1}`}
-                className="max-h-[80vh] w-auto object-contain"
+                className="h-[62vh] sm:h-[74vh] w-auto max-w-full object-contain shadow-2xl"
                 referrerPolicy="no-referrer"
               />
             </div>
 
             {selectedStory.galleryImages.length > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-4 max-w-full overflow-x-auto px-2 py-1 no-scrollbar">
+              <div className="flex items-center justify-start sm:justify-center gap-2 mt-4 max-w-full overflow-x-auto px-2 py-1 no-scrollbar">
                 {selectedStory.galleryImages.map((imgUrl, idx) => (
                   <button
                     key={`${imgUrl}-${idx}`}
